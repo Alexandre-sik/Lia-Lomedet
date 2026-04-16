@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { DAILY_GOAL, dailyCompleted, useProgress } from "@/lib/progress";
 
 type SubjectId =
   | "letters"
@@ -65,14 +66,16 @@ const SUBJECT_ACTIVE_SHADOW =
 export default function EnglishDashboard() {
   const [subject, setSubject] = useState<SubjectId>("vocab");
   const [level, setLevel] = useState<LevelId>("easy");
+  const progress = useProgress();
 
   const subjectLabel =
     SUBJECTS.find((s) => s.id === subject)?.label ?? "";
   const levelLabel = LEVELS.find((l) => l.id === level)?.label ?? "";
+  const done = dailyCompleted(progress);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 pb-20 pt-6 sm:px-8">
-      <Header />
+      <Header totalStars={progress.totalStars} />
       <Hero />
       <MascotBand />
       <Controls
@@ -81,7 +84,7 @@ export default function EnglishDashboard() {
         level={level}
         setLevel={setLevel}
       />
-      <MissionBar />
+      <MissionBar done={done} goal={DAILY_GOAL} />
       <LearnSection
         subject={subject}
         level={level}
@@ -93,7 +96,7 @@ export default function EnglishDashboard() {
   );
 }
 
-function Header() {
+function Header({ totalStars }: { totalStars: number }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 py-4">
       <div className="flex items-center gap-3">
@@ -132,7 +135,7 @@ function Header() {
         </button>
         <div className="flex h-11 items-center gap-2 rounded-full border border-line bg-white/80 px-4 text-sm font-bold text-ink shadow-sm backdrop-blur">
           <span>⭐</span>
-          <span>87</span>
+          <span>{totalStars}</span>
         </div>
         <div
           className="grid h-11 w-11 place-items-center rounded-full text-xl shadow-md"
@@ -287,8 +290,9 @@ function Controls({ subject, setSubject, level, setLevel }: ControlsProps) {
   );
 }
 
-function MissionBar() {
-  const progress = 33;
+function MissionBar({ done, goal }: { done: number; goal: number }) {
+  const pct = Math.min(100, Math.round((done / goal) * 100));
+  const isDone = done >= goal;
   return (
     <section
       className="relative mt-8 overflow-hidden rounded-[28px] p-6 shadow-[0_20px_50px_-20px_rgba(127,29,29,0.55)] sm:p-7"
@@ -312,18 +316,22 @@ function MissionBar() {
         <div
           className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-2xl text-3xl shadow-lg"
           style={{
-            background: "linear-gradient(135deg, #fde047 0%, #f59e0b 100%)",
-            boxShadow: "0 14px 32px -12px rgba(245, 158, 11, 0.6)",
+            background: isDone
+              ? "linear-gradient(135deg, #34d399 0%, #10b981 100%)"
+              : "linear-gradient(135deg, #fde047 0%, #f59e0b 100%)",
+            boxShadow: isDone
+              ? "0 14px 32px -12px rgba(16, 185, 129, 0.6)"
+              : "0 14px 32px -12px rgba(245, 158, 11, 0.6)",
           }}
           aria-hidden
         >
-          🎯
+          {isDone ? "✅" : "🎯"}
         </div>
 
         <div className="flex-1">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-lg font-bold text-white sm:text-xl">
-              המשימה היומית שלך
+              {isDone ? "המשימה היומית הושלמה!" : "המשימה היומית שלך"}
             </h3>
             <div className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               <span
@@ -333,9 +341,9 @@ function MissionBar() {
                     "linear-gradient(135deg, #fde047 0%, #34d399 100%)",
                 }}
               >
-                1
+                {done}
               </span>
-              <span className="text-white/60"> / 3</span>
+              <span className="text-white/60"> / {goal}</span>
             </div>
           </div>
 
@@ -343,7 +351,7 @@ function MissionBar() {
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
-                width: `${progress}%`,
+                width: `${pct}%`,
                 background:
                   "linear-gradient(90deg, #34d399 0%, #10b981 100%)",
                 boxShadow: "0 0 16px 2px rgba(16, 185, 129, 0.7)",
