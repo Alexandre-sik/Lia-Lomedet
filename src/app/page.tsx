@@ -1,65 +1,252 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { useProgress } from "@/lib/progress";
 
 export default function Home() {
+  const progress = useProgress();
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto w-full max-w-6xl px-5 pb-16 pt-6 sm:px-8">
+      <Header totalStars={progress.totalStars} />
+      <Hero />
+      <SubjectGrid mathStats={progress.topicStats} />
+      <BottomRow
+        badges={progress.badges.length}
+        streak={progress.streak}
+      />
+    </main>
+  );
+}
+
+function Header({ totalStars }: { totalStars: number }) {
+  return (
+    <header className="flex items-center justify-between gap-3 py-4">
+      <div className="flex items-center gap-3">
+        <div
+          className="grid h-11 w-11 place-items-center rounded-2xl text-xl text-white shadow-lg shadow-indigo-500/30"
+          style={{
+            background:
+              "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)",
+          }}
+        >
+          ✨
+        </div>
+        <span className="text-lg font-extrabold tracking-tight text-ink sm:text-xl">
+          ליה לומדת
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          aria-label="פאנל הורים"
+          className="grid h-11 w-11 place-items-center rounded-2xl border border-line bg-white/80 text-lg shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          ⚙️
+        </button>
+
+        <div className="flex h-11 items-center gap-2 rounded-full border border-line bg-white/80 px-4 text-sm font-bold text-ink shadow-sm backdrop-blur">
+          <span>⭐</span>
+          <span>{totalStars}</span>
+        </div>
+
+        <div
+          className="grid h-11 w-11 place-items-center rounded-full text-xl shadow-md"
+          style={{
+            background: "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)",
+          }}
+          aria-label="ליה"
+        >
+          👧
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="mt-10 text-center sm:mt-14">
+      <h2 className="text-[40px] font-extrabold leading-tight tracking-tight text-ink sm:text-5xl">
+        שלום{" "}
+        <span
+          className="bg-clip-text text-transparent"
+          style={{
+            backgroundImage:
+              "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)",
+          }}
+        >
+          ליה
+        </span>
+        ! 👋
+      </h2>
+      <p className="mt-3 text-lg font-medium text-ink-soft sm:text-xl">
+        מה תרצי ללמוד היום?
+      </p>
+    </section>
+  );
+}
+
+type SubjectCardProps = {
+  href: string;
+  emoji: string;
+  title: string;
+  subtitle: string;
+  gradient: string;
+  shadow: string;
+  pills: [string, string, string];
+};
+
+function SubjectGrid({
+  mathStats,
+}: {
+  mathStats: Record<
+    string,
+    { practiceCount: number; quizCount: number; bestScorePct: number }
+  >;
+}) {
+  const mathTopics = Object.values(mathStats);
+  const mathActivities = mathTopics.reduce(
+    (n, s) => n + s.practiceCount + s.quizCount,
+    0,
+  );
+  const avgScore =
+    mathTopics.length === 0
+      ? 0
+      : Math.round(
+          mathTopics.reduce((n, s) => n + s.bestScorePct, 0) /
+            mathTopics.length,
+        );
+
+  const mathPills: [string, string, string] = [
+    `⭐ ${mathActivities * 10}`,
+    `🎯 ${mathActivities} פעילויות`,
+    avgScore > 0 ? `📊 ${avgScore}%` : "📊 חדש",
+  ];
+
+  return (
+    <section className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <SubjectCard
+        href="/math"
+        emoji="🧮"
+        title="מתמטיקה"
+        subtitle="מספרים, חיבור וחיסור"
+        gradient="linear-gradient(135deg, #8b5cf6 0%, #6366f1 55%, #ec4899 100%)"
+        shadow="0 24px 60px -20px rgba(99, 102, 241, 0.55)"
+        pills={mathPills}
+      />
+      <SubjectCard
+        href="/english"
+        emoji="🇬🇧"
+        title="English"
+        subtitle="אותיות, מילים וביטויים"
+        gradient="linear-gradient(135deg, #f43f5e 0%, #f59e0b 55%, #fde047 100%)"
+        shadow="0 24px 60px -20px rgba(244, 63, 94, 0.55)"
+        pills={["✨ חדש", "🔤 אותיות", "💬 מילים"]}
+      />
+    </section>
+  );
+}
+
+function SubjectCard({
+  href,
+  emoji,
+  title,
+  subtitle,
+  gradient,
+  shadow,
+  pills,
+}: SubjectCardProps) {
+  return (
+    <Link
+      href={href}
+      className="group relative block overflow-hidden rounded-[28px] p-7 text-white transition-all duration-300 hover:-translate-y-1.5 sm:p-8"
+      style={{
+        background: gradient,
+        boxShadow: shadow,
+      }}
+    >
+      <div
+        className="pointer-events-none absolute -left-16 -top-20 h-64 w-64 rounded-full opacity-30 blur-3xl"
+        style={{ background: "rgba(255,255,255,0.55)" }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-24 -right-16 h-64 w-64 rounded-full opacity-20 blur-3xl"
+        style={{ background: "rgba(255,255,255,0.45)" }}
+        aria-hidden
+      />
+
+      <div className="relative flex flex-col gap-6">
+        <div className="text-[72px] leading-none drop-shadow-sm">{emoji}</div>
+
+        <div>
+          <h3 className="text-4xl font-extrabold tracking-tight sm:text-[36px]">
+            {title}
+          </h3>
+          <p className="mt-1 text-base font-medium text-white/85 sm:text-lg">
+            {subtitle}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="flex flex-wrap gap-2">
+          {pills.map((p) => (
+            <span
+              key={p}
+              className="rounded-full border border-white/30 bg-white/20 px-3.5 py-1.5 text-sm font-bold text-white backdrop-blur-md"
+            >
+              {p}
+            </span>
+          ))}
         </div>
-      </main>
-    </div>
+
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-base font-semibold text-white/85">
+            התחילי ללמוד
+          </span>
+          <span
+            className="grid h-14 w-14 place-items-center rounded-full bg-white text-2xl text-ink shadow-lg transition-transform duration-300 group-hover:-translate-x-1"
+            aria-hidden
+          >
+            ←
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function BottomRow({
+  badges,
+  streak,
+}: {
+  badges: number;
+  streak: number;
+}) {
+  const streakLabel =
+    streak === 0
+      ? "התחילי היום!"
+      : streak === 1
+      ? "יום ראשון ברצף"
+      : `${streak} ימי רצף`;
+  const badgesLabel = badges === 0 ? "אין עדיין תגים" : `${badges} תגים`;
+  const items = [
+    { emoji: "🏆", label: badgesLabel },
+    { emoji: "🔥", label: streakLabel },
+    { emoji: "⚙️", label: "פאנל הורים" },
+  ];
+
+  return (
+    <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="flex items-center gap-3 rounded-[20px] border border-line bg-white/90 px-5 py-4 shadow-[0_8px_24px_-12px_rgba(15,21,53,0.12)] backdrop-blur"
+        >
+          <span className="text-2xl">{item.emoji}</span>
+          <span className="text-base font-bold text-ink">{item.label}</span>
+        </div>
+      ))}
+    </section>
   );
 }
