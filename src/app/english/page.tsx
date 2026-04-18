@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DAILY_GOAL, dailyCompleted, useProgress } from "@/lib/progress";
+import {
+  DAILY_GOAL,
+  dailyCompleted,
+  hasDoneTodayByType,
+  useProgress,
+} from "@/lib/progress";
 
 type SubjectId =
   | "letters"
@@ -84,7 +89,12 @@ export default function EnglishDashboard() {
         level={level}
         setLevel={setLevel}
       />
-      <MissionBar done={done} goal={DAILY_GOAL} />
+      <MissionBar
+        done={done}
+        goal={DAILY_GOAL}
+        hasPractice={hasDoneTodayByType(progress, "practice")}
+        hasQuiz={hasDoneTodayByType(progress, "quiz")}
+      />
       <LearnSection
         subject={subject}
         level={level}
@@ -126,13 +136,13 @@ function Header({ totalStars }: { totalStars: number }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
+        <Link
+          href="/parent"
           aria-label="פאנל הורים"
           className="grid h-11 w-11 place-items-center rounded-2xl border border-line bg-white/80 text-lg shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md"
         >
           ⚙️
-        </button>
+        </Link>
         <div className="flex h-11 items-center gap-2 rounded-full border border-line bg-white/80 px-4 text-sm font-bold text-ink shadow-sm backdrop-blur">
           <span>⭐</span>
           <span>{totalStars}</span>
@@ -290,7 +300,17 @@ function Controls({ subject, setSubject, level, setLevel }: ControlsProps) {
   );
 }
 
-function MissionBar({ done, goal }: { done: number; goal: number }) {
+function MissionBar({
+  done,
+  goal,
+  hasPractice,
+  hasQuiz,
+}: {
+  done: number;
+  goal: number;
+  hasPractice: boolean;
+  hasQuiz: boolean;
+}) {
   const pct = Math.min(100, Math.round((done / goal) * 100));
   const isDone = done >= goal;
   return (
@@ -358,9 +378,37 @@ function MissionBar({ done, goal }: { done: number; goal: number }) {
               }}
             />
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <MissionPill emoji="✍️" label="Practice" done={hasPractice} />
+            <MissionPill emoji="🎯" label="Quiz" done={hasQuiz} />
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function MissionPill({
+  emoji,
+  label,
+  done,
+}: {
+  emoji: string;
+  label: string;
+  done: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold backdrop-blur-md ${
+        done
+          ? "border-emerald-300/50 bg-emerald-400/20 text-emerald-100"
+          : "border-white/20 bg-white/10 text-white/70"
+      }`}
+    >
+      <span>{done ? "✅" : emoji}</span>
+      <span>{label}</span>
+    </span>
   );
 }
 
@@ -392,29 +440,15 @@ function LearnSection({
   const query = `?topic=${subject}&level=${level}`;
   const cards: LearnCard[] = [
     {
-      status: "✓ הושלם",
-      statusTone: "done",
-      emoji: "📖",
-      iconBg: "linear-gradient(135deg, #fb7185 0%, #ec4899 100%)",
-      iconShadow: "0 14px 32px -12px rgba(244, 63, 94, 0.55)",
-      title: "שיעור · Animals",
-      description:
-        "10 חיות באנגלית עם הגייה ותמונות — dog, cat, bird...",
-      tags: ["🔊 עם קול", "10 דק׳"],
-      cta: "צפי שוב",
-      ctaTone: "done",
-      href: `/english/lesson/${subject}${query}`,
-    },
-    {
       status: "חדש",
       statusTone: "new",
       emoji: "✍️",
       iconBg: "linear-gradient(135deg, #fb923c 0%, #f59e0b 100%)",
       iconShadow: "0 14px 32px -12px rgba(249, 115, 22, 0.55)",
-      title: "תרגול · Match",
+      title: "תרגול",
       description:
-        "התאימי תמונות למילים באנגלית — משחקי התאמה ושמיעה",
-      tags: ["12 שאלות", "🔊"],
+        "15 תרגילים באנגלית — התאמות, הגייה ואוצר מילים",
+      tags: ["15 שאלות", "🔊 עם קול"],
       cta: "התחילי ←",
       ctaTone: "go",
       href: `/english/practice${query}`,
@@ -426,8 +460,8 @@ function LearnSection({
       iconBg: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
       iconShadow: "0 14px 32px -12px rgba(99, 102, 241, 0.55)",
       title: "מבחן קצר",
-      description: "בדקי את עצמך — 8 שאלות מעורבות באוצר מילים",
-      tags: ["8 שאלות", "5 דק׳"],
+      description: "10 שאלות מעורבות באנגלית עם מגבלת זמן של 5 דקות",
+      tags: ["10 שאלות", "5 דק׳"],
       cta: "התחילי ←",
       ctaTone: "go",
       href: `/english/quiz${query}`,
@@ -445,7 +479,7 @@ function LearnSection({
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         {cards.map((c) => (
           <LearnCardView key={c.title} card={c} />
         ))}

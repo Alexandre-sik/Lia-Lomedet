@@ -37,13 +37,13 @@ function Header({ totalStars }: { totalStars: number }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
+        <Link
+          href="/parent"
           aria-label="פאנל הורים"
           className="grid h-11 w-11 place-items-center rounded-2xl border border-line bg-white/80 text-lg shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md"
         >
           ⚙️
-        </button>
+        </Link>
 
         <div className="flex h-11 items-center gap-2 rounded-full border border-line bg-white/80 px-4 text-sm font-bold text-ink shadow-sm backdrop-blur">
           <span>⭐</span>
@@ -230,23 +230,29 @@ function BottomRow({
       ? "יום ראשון ברצף"
       : `${streak} ימי רצף`;
   const badgesLabel = badges === 0 ? "אין עדיין תגים" : `${badges} תגים`;
-  const items = [
+  const items: Array<{ emoji: string; label: string; href?: string }> = [
     { emoji: "🏆", label: badgesLabel },
     { emoji: "🔥", label: streakLabel },
-    { emoji: "⚙️", label: "פאנל הורים" },
+    { emoji: "⚙️", label: "פאנל הורים", href: "/parent" },
   ];
 
   return (
     <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="flex items-center gap-3 rounded-[20px] border border-line bg-white/90 px-5 py-4 shadow-[0_8px_24px_-12px_rgba(15,21,53,0.12)] backdrop-blur"
-        >
-          <span className="text-2xl">{item.emoji}</span>
-          <span className="text-base font-bold text-ink">{item.label}</span>
-        </div>
-      ))}
+      {items.map((item) => {
+        const content = (
+          <div className="flex items-center gap-3 rounded-[20px] border border-line bg-white/90 px-5 py-4 shadow-[0_8px_24px_-12px_rgba(15,21,53,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md">
+            <span className="text-2xl">{item.emoji}</span>
+            <span className="text-base font-bold text-ink">{item.label}</span>
+          </div>
+        );
+        return item.href ? (
+          <Link key={item.label} href={item.href}>
+            {content}
+          </Link>
+        ) : (
+          <div key={item.label}>{content}</div>
+        );
+      })}
     </section>
   );
 }

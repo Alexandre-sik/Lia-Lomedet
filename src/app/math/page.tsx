@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   DAILY_GOAL,
   dailyCompleted,
+  hasDoneTodayByType,
   isDailyMissionComplete,
   useProgress,
 } from "@/lib/progress";
@@ -89,7 +90,12 @@ export default function MathDashboard() {
         level={level}
         setLevel={setLevel}
       />
-      <MissionBar done={done} goal={DAILY_GOAL} />
+      <MissionBar
+        done={done}
+        goal={DAILY_GOAL}
+        hasPractice={hasDoneTodayByType(progress, "practice")}
+        hasQuiz={hasDoneTodayByType(progress, "quiz")}
+      />
       <LearnSection
         subject={subject}
         level={level}
@@ -135,13 +141,13 @@ function Header({ totalStars }: { totalStars: number }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
+        <Link
+          href="/parent"
           aria-label="פאנל הורים"
           className="grid h-11 w-11 place-items-center rounded-2xl border border-line bg-white/80 text-lg shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md"
         >
           ⚙️
-        </button>
+        </Link>
         <div className="flex h-11 items-center gap-2 rounded-full border border-line bg-white/80 px-4 text-sm font-bold text-ink shadow-sm backdrop-blur">
           <span>⭐</span>
           <span>{totalStars}</span>
@@ -263,7 +269,17 @@ function Controls({ subject, setSubject, level, setLevel }: ControlsProps) {
   );
 }
 
-function MissionBar({ done, goal }: { done: number; goal: number }) {
+function MissionBar({
+  done,
+  goal,
+  hasPractice,
+  hasQuiz,
+}: {
+  done: number;
+  goal: number;
+  hasPractice: boolean;
+  hasQuiz: boolean;
+}) {
   const pct = Math.min(100, Math.round((done / goal) * 100));
   const isDone = done >= goal;
   return (
@@ -330,9 +346,37 @@ function MissionBar({ done, goal }: { done: number; goal: number }) {
               }}
             />
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <MissionPill emoji="✍️" label="תרגול" done={hasPractice} />
+            <MissionPill emoji="🎯" label="מבחן" done={hasQuiz} />
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function MissionPill({
+  emoji,
+  label,
+  done,
+}: {
+  emoji: string;
+  label: string;
+  done: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold backdrop-blur-md ${
+        done
+          ? "border-emerald-300/50 bg-emerald-400/20 text-emerald-100"
+          : "border-white/20 bg-white/10 text-white/70"
+      }`}
+    >
+      <span>{done ? "✅" : emoji}</span>
+      <span>{label}</span>
+    </span>
   );
 }
 
@@ -363,20 +407,6 @@ function LearnSection({
 }) {
   const query = `?topic=${subject}&level=${level}`;
   const cards: LearnCard[] = [
-    {
-      status: "✓ הושלם",
-      statusTone: "done",
-      emoji: "📖",
-      iconBg: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-      iconShadow: "0 14px 32px -12px rgba(99, 102, 241, 0.55)",
-      title: "שיעור",
-      description:
-        "שיעור אינטראקטיבי עם דוגמאות וטריקים — לפי הנושא שבחרת",
-      tags: ["10 דק׳", subjectLabel],
-      cta: "צפי שוב",
-      ctaTone: "done",
-      href: `/math/lesson/${subject}${query}`,
-    },
     {
       status: "חדש",
       statusTone: "new",
@@ -416,7 +446,7 @@ function LearnSection({
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         {cards.map((c) => (
           <LearnCardView key={c.title} card={c} />
         ))}

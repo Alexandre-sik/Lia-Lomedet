@@ -126,10 +126,11 @@ function textQuestion(
   };
 }
 
-function genMul(level: Level): Question {
-  if (level === "easy") {
-    const a = randInt(2, 5);
-    const b = randInt(2, 5);
+function genMulEasy(): Question {
+  const form = randInt(0, 3);
+  if (form === 0) {
+    const a = randInt(2, 7);
+    const b = randInt(2, 7);
     const c = a * b;
     return numericQuestion(
       `${a} × ${b} = ?`,
@@ -138,18 +139,92 @@ function genMul(level: Level): Question {
       `${a} × ${b} = ${c}. חושבים על זה כ-${a} פעמים ${b}.`,
     );
   }
-  if (level === "normal") {
-    const a = randInt(2, 9);
-    const b = randInt(2, 9);
+  if (form === 1) {
+    const a = randInt(2, 7);
+    const b = randInt(2, 7);
     const c = a * b;
     return numericQuestion(
-      `${a} × ${b} = ?`,
+      `${b} × ${a} = ?`,
       c,
-      10,
-      `${a} × ${b} = ${c}`,
+      6,
+      `חוק החילוף: ${b} × ${a} = ${a} × ${b} = ${c}.`,
     );
   }
-  const form = randInt(0, 2);
+  if (form === 2) {
+    const a = randInt(2, 7);
+    const b = randInt(2, 7);
+    const c = a * b;
+    return numericQuestion(
+      `? × ${b} = ${c}`,
+      a,
+      4,
+      `${a} × ${b} = ${c}, אז המספר החסר הוא ${a}.`,
+    );
+  }
+  const groups = randInt(2, 6);
+  const per = randInt(2, 6);
+  const total = groups * per;
+  return numericQuestion(
+    `יש ${groups} קבוצות של ${per} ילדים. כמה ילדים בסך הכל?`,
+    total,
+    6,
+    `${groups} × ${per} = ${total}. קבוצות שוות → כפל.`,
+  );
+}
+
+function genMulNormal(): Question {
+  const form = randInt(0, 4);
+  if (form === 0) {
+    const a = randInt(2, 10);
+    const b = randInt(2, 10);
+    const c = a * b;
+    return numericQuestion(`${a} × ${b} = ?`, c, 10, `${a} × ${b} = ${c}`);
+  }
+  if (form === 1) {
+    const a = randInt(3, 10);
+    const b = randInt(3, 10);
+    const c = a * b;
+    return numericQuestion(
+      `${b} × ${a} = ?`,
+      c,
+      10,
+      `${b} × ${a} = ${a} × ${b} = ${c}.`,
+    );
+  }
+  if (form === 2) {
+    const a = randInt(3, 9);
+    const b = randInt(3, 9);
+    const c = a * b;
+    return numericQuestion(
+      `? × ${b} = ${c}`,
+      a,
+      4,
+      `${a} × ${b} = ${c}, אז המספר החסר הוא ${a}.`,
+    );
+  }
+  if (form === 3) {
+    const a = randInt(2, 10);
+    const c = a * 10;
+    return numericQuestion(
+      `${a} × 10 = ?`,
+      c,
+      10,
+      `כפל ב-10: מוסיפים 0 בסוף. ${a} × 10 = ${c}.`,
+    );
+  }
+  const boxes = randInt(3, 9);
+  const per = randInt(4, 9);
+  const total = boxes * per;
+  return numericQuestion(
+    `בחנות ${boxes} קופסאות של עפרונות, כל קופסה עם ${per} עפרונות. כמה עפרונות בסך הכל?`,
+    total,
+    10,
+    `${boxes} × ${per} = ${total}. קבוצות שוות → כפל.`,
+  );
+}
+
+function genMulHard(): Question {
+  const form = randInt(0, 5);
   if (form === 0) {
     const a = randInt(3, 9);
     const b = randInt(3, 9);
@@ -176,10 +251,54 @@ function genMul(level: Level): Question {
       `קודם כפל: ${a} × ${b} = ${prod}. אחר כך ${N} + ${prod} = ${c}.`,
     );
   }
-  const a = randInt(2, 12);
-  const b = randInt(2, 10);
+  if (form === 2) {
+    const a = randInt(11, 15);
+    const b = randInt(3, 9);
+    const c = a * b;
+    return numericQuestion(
+      `${a} × ${b} = ?`,
+      c,
+      15,
+      `טריק: ${a} × ${b} = ${a - 10} × ${b} + 10 × ${b} = ${(a - 10) * b} + ${10 * b} = ${c}.`,
+    );
+  }
+  if (form === 3) {
+    const a = randInt(3, 9);
+    const b = randInt(3, 9);
+    const c = a * b;
+    return numericQuestion(
+      `${a} × __ = ${c}`,
+      b,
+      4,
+      `${a} × ${b} = ${c}, אז המספר החסר הוא ${b}.`,
+    );
+  }
+  if (form === 4) {
+    const groups = randInt(4, 9);
+    const per = randInt(5, 12);
+    const total = groups * per;
+    return numericQuestion(
+      `ליה ארזה ${groups} חבילות שוות. אם בסך הכל יש ${total} ממתקים, כמה ממתקים בכל חבילה?`,
+      per,
+      5,
+      `${total} : ${groups} = ${per} (חילוק = היפוך של כפל).`,
+    );
+  }
+  const a = randInt(12, 20);
+  const b = randInt(2, 9);
   const c = a * b;
-  return numericQuestion(`${a} × ${b} = ?`, c, 15, `${a} × ${b} = ${c}`);
+  return numericQuestion(
+    `${a} × ${b} = ?`,
+    c,
+    20,
+    `${a} × ${b} = ${c}`,
+  );
+}
+
+function genMul(level: Level): Question {
+  if (level === "easy") return genMulEasy();
+  if (level === "normal") return genMulNormal();
+  return genMulHard();
 }
 
 function noCarryAdd(digits: number): [number, number] {

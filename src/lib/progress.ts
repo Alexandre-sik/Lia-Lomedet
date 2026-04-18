@@ -19,6 +19,7 @@ export type Progress = {
   lastActiveDate: string;
   completedLessons: string[];
   daily: { date: string; activities: Activity[] };
+  history: Activity[];
   badges: string[];
   topicStats: Record<
     string,
@@ -27,7 +28,8 @@ export type Progress = {
 };
 
 const STORAGE_KEY = "lia-lomedet:progress:v1";
-export const DAILY_GOAL = 3;
+const HISTORY_MAX = 300;
+export const DAILY_GOAL = 2;
 
 function todayStr(): string {
   const d = new Date();
@@ -51,6 +53,7 @@ const DEFAULT: Progress = {
   lastActiveDate: "",
   completedLessons: [],
   daily: { date: "", activities: [] },
+  history: [],
   badges: [],
   topicStats: {},
 };
@@ -68,6 +71,7 @@ function read(): Progress {
       ...DEFAULT,
       ...parsed,
       daily: parsed.daily ?? { date: todayStr(), activities: [] },
+      history: parsed.history ?? [],
       completedLessons: parsed.completedLessons ?? [],
       badges: parsed.badges ?? [],
       topicStats: parsed.topicStats ?? {},
@@ -134,7 +138,8 @@ function addActivity(p: Progress, a: Activity): Progress {
     p.daily.date === t
       ? { date: t, activities: [...p.daily.activities, a] }
       : { date: t, activities: [a] };
-  return { ...p, daily };
+  const history = [...p.history, a].slice(-HISTORY_MAX);
+  return { ...p, daily, history };
 }
 
 function upsertTopicStat(
@@ -154,12 +159,21 @@ function upsertTopicStat(
 
 function maybeGrantBadges(p: Progress): Progress {
   const badges = new Set(p.badges);
-  if (p.completedLessons.length >= 1) badges.add("first-lesson");
-  if (p.completedLessons.length >= 3) badges.add("three-lessons");
   if (p.streak >= 3) badges.add("streak-3");
   if (p.streak >= 7) badges.add("streak-7");
   if (p.totalStars >= 50) badges.add("stars-50");
   if (p.totalStars >= 200) badges.add("stars-200");
+  const practiceCount = Object.values(p.topicStats).reduce(
+    (n, s) => n + s.practiceCount,
+    0,
+  );
+  const quizCount = Object.values(p.topicStats).reduce(
+    (n, s) => n + s.quizCount,
+    0,
+  );
+  if (practiceCount >= 1) badges.add("first-practice");
+  if (quizCount >= 1) badges.add("first-quiz");
+  if (practiceCount >= 10) badges.add("ten-practices");
   const hasPerfect = Object.values(p.topicStats).some((s) => s.bestScorePct === 100);
   if (hasPerfect) badges.add("perfect-score");
   return { ...p, badges: Array.from(badges) };
@@ -250,13 +264,25 @@ export function recordGamePlay(topic: string, score: number) {
   });
 }
 
+export function hasDoneTodayByType(
+  p: Progress,
+  type: ActivityType,
+): boolean {
+  if (p.daily.date !== todayStr()) return false;
+  return p.daily.activities.some((a) => a.type === type);
+}
+
 export function dailyCompleted(p: Progress): number {
-  if (p.daily.date !== todayStr()) return 0;
-  return Math.min(p.daily.activities.length, DAILY_GOAL);
+  let n = 0;
+  if (hasDoneTodayByType(p, "practice")) n++;
+  if (hasDoneTodayByType(p, "quiz")) n++;
+  return n;
 }
 
 export function isDailyMissionComplete(p: Progress): boolean {
-  return dailyCompleted(p) >= DAILY_GOAL;
+  return (
+    hasDoneTodayByType(p, "practice") && hasDoneTodayByType(p, "quiz")
+  );
 }
 
 export function resetProgress() {
