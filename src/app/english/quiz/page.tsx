@@ -27,7 +27,6 @@ import { recordQuizComplete, useProgress } from "@/lib/progress";
 
 const TOTAL_QUESTIONS = 10;
 const TIME_LIMIT_SECONDS = 5 * 60;
-const FEEDBACK_MS = 1200;
 
 export default function EnglishQuizPage() {
   return (
@@ -107,20 +106,22 @@ function QuizInner() {
         next[currentIndex] = option;
         return next;
       });
-      window.setTimeout(() => {
-        setShowFeedback(false);
-        setSelectedAnswer(null);
-        setCurrentIndex((idx) => {
-          if (idx + 1 >= questions.length) {
-            setIsComplete(true);
-            return idx;
-          }
-          return idx + 1;
-        });
-      }, FEEDBACK_MS);
     },
-    [current, currentIndex, questions.length, selectedAnswer],
+    [current, currentIndex, selectedAnswer],
   );
+
+  const handleNext = useCallback(() => {
+    if (selectedAnswer === null) return;
+    setShowFeedback(false);
+    setSelectedAnswer(null);
+    setCurrentIndex((idx) => {
+      if (idx + 1 >= questions.length) {
+        setIsComplete(true);
+        return idx;
+      }
+      return idx + 1;
+    });
+  }, [questions.length, selectedAnswer]);
 
   useEffect(() => {
     if (isComplete && !recordedRef.current) {
@@ -214,8 +215,46 @@ function QuizInner() {
             />
           )}
         </AnimatePresence>
+
+        {showFeedback && (
+          <NextButton
+            isLast={currentIndex === questions.length - 1}
+            onClick={handleNext}
+          />
+        )}
       </div>
     </main>
+  );
+}
+
+function NextButton({
+  isLast,
+  onClick,
+}: {
+  isLast: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1, duration: 0.2 }}
+      className="mt-5 flex justify-center"
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        autoFocus
+        className="rounded-2xl px-8 py-4 text-lg font-extrabold text-white transition hover:-translate-y-0.5"
+        style={{
+          background:
+            "linear-gradient(135deg, #fb7185 0%, #f43f5e 50%, #f97316 100%)",
+          boxShadow: "0 18px 40px -14px rgba(244, 63, 94, 0.6)",
+        }}
+      >
+        {isLast ? "Finish ←" : "Next ←"}
+      </button>
+    </motion.div>
   );
 }
 

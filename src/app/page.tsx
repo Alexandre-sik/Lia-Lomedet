@@ -105,27 +105,38 @@ function SubjectGrid({
     { practiceCount: number; quizCount: number; bestScorePct: number }
   >;
 }) {
-  const mathTopics = Object.values(mathStats);
-  const mathActivities = mathTopics.reduce(
-    (n, s) => n + s.practiceCount + s.quizCount,
-    0,
-  );
-  const avgScore =
-    mathTopics.length === 0
-      ? 0
-      : Math.round(
-          mathTopics.reduce((n, s) => n + s.bestScorePct, 0) /
-            mathTopics.length,
-        );
+  const byPrefix = (prefix: string) =>
+    Object.entries(mathStats).filter(([k]) => k.startsWith(prefix));
+  const noPrefix = (stats: Array<[string, typeof mathStats[string]]>) =>
+    stats.filter(([k]) => !k.includes(":"));
 
-  const mathPills: [string, string, string] = [
-    `⭐ ${mathActivities * 10}`,
-    `🎯 ${mathActivities} פעילויות`,
-    avgScore > 0 ? `📊 ${avgScore}%` : "📊 חדש",
-  ];
+  const mathTopics = noPrefix(Object.entries(mathStats)).map(([, s]) => s);
+  const enTopics = byPrefix("en:").map(([, s]) => s);
+  const triviaTopics = byPrefix("trivia:").map(([, s]) => s);
+
+  const summaryPills = (
+    topics: Array<typeof mathStats[string]>,
+    emptyLabel: string,
+  ): [string, string, string] => {
+    const activities = topics.reduce(
+      (n, s) => n + s.practiceCount + s.quizCount,
+      0,
+    );
+    if (activities === 0) {
+      return ["✨ חדש", "🎯 0 פעילויות", emptyLabel];
+    }
+    const avg = Math.round(
+      topics.reduce((n, s) => n + s.bestScorePct, 0) / topics.length,
+    );
+    return [
+      `⭐ ${activities * 10}`,
+      `🎯 ${activities} פעילויות`,
+      `📊 ${avg}%`,
+    ];
+  };
 
   return (
-    <section className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+    <section className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       <SubjectCard
         href="/math"
         emoji="🧮"
@@ -133,7 +144,7 @@ function SubjectGrid({
         subtitle="מספרים, חיבור וחיסור"
         gradient="linear-gradient(135deg, #8b5cf6 0%, #6366f1 55%, #ec4899 100%)"
         shadow="0 24px 60px -20px rgba(99, 102, 241, 0.55)"
-        pills={mathPills}
+        pills={summaryPills(mathTopics, "📊 חדש")}
       />
       <SubjectCard
         href="/english"
@@ -142,7 +153,16 @@ function SubjectGrid({
         subtitle="אותיות, מילים וביטויים"
         gradient="linear-gradient(135deg, #f43f5e 0%, #f59e0b 55%, #fde047 100%)"
         shadow="0 24px 60px -20px rgba(244, 63, 94, 0.55)"
-        pills={["✨ חדש", "🔤 אותיות", "💬 מילים"]}
+        pills={summaryPills(enTopics, "💬 חדש")}
+      />
+      <SubjectCard
+        href="/trivia"
+        emoji="🌍"
+        title="ידע כללי"
+        subtitle="גאוגרפיה, היסטוריה, מדע ועוד"
+        gradient="linear-gradient(135deg, #14b8a6 0%, #10b981 55%, #06b6d4 100%)"
+        shadow="0 24px 60px -20px rgba(20, 184, 166, 0.55)"
+        pills={summaryPills(triviaTopics, "🦉 חדש")}
       />
     </section>
   );
