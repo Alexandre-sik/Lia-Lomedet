@@ -380,7 +380,7 @@ function DoneView({
         <span>כוכבים חדשים</span>
       </div>
 
-      <div className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:flex-row-reverse">
+      <div className="mt-8 flex w-full max-w-2xl flex-col gap-3 sm:flex-row-reverse">
         <button
           type="button"
           onClick={onRestart}
@@ -396,7 +396,7 @@ function DoneView({
           href="/math"
           className="flex-1 rounded-2xl border border-line bg-white px-6 py-4 text-center text-lg font-bold text-ink shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          חזרה למתמטיקה
+          משחקים אחרים
         </Link>
       </div>
     </section>

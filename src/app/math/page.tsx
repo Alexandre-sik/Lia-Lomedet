@@ -547,16 +547,19 @@ function GamesSection({
       emoji: "🍕",
       title: "פיצרייה",
       bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)",
+      href: "/math/games/pizzeria",
     },
     {
       emoji: "🛒",
       title: "הסופר",
       bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+      href: "/math/games/super",
     },
     {
       emoji: "🏰",
       title: "טירת הצורות",
       bg: "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+      href: "/math/games/castle",
     },
   ];
 

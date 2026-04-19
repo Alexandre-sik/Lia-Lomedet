@@ -120,6 +120,9 @@ export async function POST(request: NextRequest) {
 
 צור בבקשה 10 שאלות חידון על הקטגוריה הזו, ברמה המתאימה.`;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
   try {
     const response = await fetch(ANTHROPIC_URL, {
       method: "POST",
@@ -140,13 +143,20 @@ export async function POST(request: NextRequest) {
         ],
         messages: [{ role: "user", content: userMessage }],
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const errText = await response.text();
       console.error("Anthropic API error:", response.status, errText);
+      let detail = errText.slice(0, 300);
+      try {
+        const j = JSON.parse(errText);
+        detail = j.error?.message ?? detail;
+      } catch {}
       return NextResponse.json(
-        { error: "Upstream API error" },
+        { error: `Anthropic ${response.status}: ${detail}` },
         { status: 502 },
       );
     }
@@ -184,9 +194,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ questions });
   } catch (e) {
+    clearTimeout(timeout);
     console.error("Trivia route error:", e);
+    if (e instanceof Error && e.name === "AbortError") {
+      return NextResponse.json(
+        { error: "Timeout — Claude a pris trop de temps. Nsi שוב." },
+        { status: 504 },
+      );
+    }
+    const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { error: "Failed to generate questions" },
+      { error: `Server error: ${msg}` },
       { status: 500 },
     );
   }

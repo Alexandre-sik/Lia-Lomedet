@@ -314,19 +314,20 @@ function noCarryAdd(digits: number): [number, number] {
   return [a, b];
 }
 
-function genAddSub(level: Level): Question {
-  const op = Math.random() < 0.5 ? "+" : "−";
-  if (level === "easy") {
+function genAddSubEasy(): Question {
+  const form = randInt(0, 4);
+  if (form === 0) {
     const [a, b] = noCarryAdd(2);
-    if (op === "+") {
-      const c = a + b;
-      return numericQuestion(
-        `${a} + ${b} = ?`,
-        c,
-        8,
-        `${a} + ${b} = ${c}. מחברים יחידות ואז עשרות.`,
-      );
-    }
+    const c = a + b;
+    return numericQuestion(
+      `${a} + ${b} = ?`,
+      c,
+      8,
+      `${a} + ${b} = ${c}. מחברים יחידות ואז עשרות.`,
+    );
+  }
+  if (form === 1) {
+    const [a, b] = noCarryAdd(2);
     const big = Math.max(a, b);
     const small = Math.min(a, b);
     const c = big - small;
@@ -337,31 +338,105 @@ function genAddSub(level: Level): Question {
       `${big} − ${small} = ${c}. מחסרים יחידות ואז עשרות.`,
     );
   }
-  if (level === "normal") {
-    const a = randInt(150, 950);
-    const b = randInt(50, 900);
-    if (op === "+") {
-      const c = a + b;
-      return numericQuestion(
-        `${a} + ${b} = ?`,
-        c,
-        30,
-        `שימי לב להחזר: ${a} + ${b} = ${c}.`,
-      );
-    }
-    const big = Math.max(a, b);
-    const small = Math.min(a, b);
-    const c = big - small;
+  if (form === 2) {
+    const a = randInt(3, 25);
+    const missing = randInt(3, 20);
+    const c = a + missing;
     return numericQuestion(
-      `${big} − ${small} = ?`,
-      c,
-      30,
-      `שימי לב לשאילה: ${big} − ${small} = ${c}.`,
+      `${a} + __ = ${c}`,
+      missing,
+      5,
+      `${a} + ${missing} = ${c}, אז המספר החסר הוא ${missing}.`,
     );
   }
-  const a = randInt(2000, 9000);
-  const b = randInt(200, a - 100);
-  if (op === "+") {
+  if (form === 3) {
+    const a = randInt(20, 60);
+    const missing = randInt(3, a - 3);
+    const c = a - missing;
+    return numericQuestion(
+      `${a} − __ = ${c}`,
+      missing,
+      5,
+      `${a} − ${missing} = ${c}, אז המספר החסר הוא ${missing}.`,
+    );
+  }
+  const x = randInt(1, 8);
+  const y = randInt(1, 8);
+  const z = randInt(1, 8);
+  const sum = x + y + z;
+  return numericQuestion(
+    `${x} + ${y} + ${z} = ?`,
+    sum,
+    5,
+    `מחברים לפי הסדר: ${x} + ${y} = ${x + y}, ואז + ${z} = ${sum}.`,
+  );
+}
+
+function genAddSubNormal(): Question {
+  const form = randInt(0, 4);
+  if (form === 0) {
+    const a = randInt(150, 950);
+    const b = randInt(50, 900);
+    const c = a + b;
+    return numericQuestion(
+      `${a} + ${b} = ?`,
+      c,
+      30,
+      `שימי לב להחזר: ${a} + ${b} = ${c}.`,
+    );
+  }
+  if (form === 1) {
+    const a = randInt(200, 950);
+    const b = randInt(50, a - 50);
+    const c = a - b;
+    return numericQuestion(
+      `${a} − ${b} = ?`,
+      c,
+      30,
+      `שימי לב לשאילה: ${a} − ${b} = ${c}.`,
+    );
+  }
+  if (form === 2) {
+    const a = randInt(40, 220);
+    const missing = randInt(30, 200);
+    const c = a + missing;
+    return numericQuestion(
+      `${a} + __ = ${c}`,
+      missing,
+      20,
+      `${a} + ${missing} = ${c}.`,
+    );
+  }
+  if (form === 3) {
+    const a = randInt(80, 300);
+    const b = randInt(20, 100);
+    const c = randInt(10, 50);
+    const total = a + b - c;
+    return numericQuestion(
+      `${a} + ${b} − ${c} = ?`,
+      total,
+      20,
+      `לפי הסדר: ${a} + ${b} = ${a + b}, ואז − ${c} = ${total}.`,
+    );
+  }
+  const near10 = randInt(4, 12) * 10;
+  const close = randInt(-9, 9);
+  const b = near10 + close;
+  const add = randInt(30, 80);
+  const result = b + add;
+  return numericQuestion(
+    `${b} + ${add} = ?`,
+    result,
+    15,
+    `אם ${b} קרוב ל-${near10}, אפשר לחשוב: ${near10} + ${add} = ${near10 + add}, ואז ${close < 0 ? "להוסיף" : "להפחית"} ${Math.abs(close)}.`,
+  );
+}
+
+function genAddSubHard(): Question {
+  const form = randInt(0, 4);
+  if (form === 0) {
+    const a = randInt(2000, 9000);
+    const b = randInt(200, a - 100);
     const c = a + b;
     return numericQuestion(
       `${a} + ${b} = ?`,
@@ -370,17 +445,62 @@ function genAddSub(level: Level): Question {
       `מחברים בטור מהיחידות לאלפים: ${a} + ${b} = ${c}.`,
     );
   }
-  const c = a - b;
+  if (form === 1) {
+    const a = randInt(2000, 9500);
+    const b = randInt(200, a - 100);
+    const c = a - b;
+    return numericQuestion(
+      `${a} − ${b} = ?`,
+      c,
+      80,
+      `מחסרים בטור מהיחידות: ${a} − ${b} = ${c}.`,
+    );
+  }
+  if (form === 2) {
+    const a = randInt(500, 2500);
+    const missing = randInt(500, 2000);
+    const c = a + missing;
+    return numericQuestion(
+      `${a} + __ = ${c}`,
+      missing,
+      100,
+      `${a} + ${missing} = ${c}.`,
+    );
+  }
+  if (form === 3) {
+    const a = randInt(1000, 4000);
+    const b = randInt(300, 1500);
+    const c = randInt(100, 800);
+    const d = randInt(100, 600);
+    const total = a + b - c - d;
+    return numericQuestion(
+      `${a} + ${b} − ${c} − ${d} = ?`,
+      total,
+      100,
+      `לפי הסדר: ${a} + ${b} − ${c} − ${d} = ${total}.`,
+    );
+  }
+  const a = randInt(1000, 5000);
+  const b = randInt(100, a - 500);
+  const c = randInt(100, 1000);
+  const total = a - b + c;
   return numericQuestion(
-    `${a} − ${b} = ?`,
-    c,
-    80,
-    `מחסרים בטור מהיחידות: ${a} − ${b} = ${c}.`,
+    `${a} − ${b} + ${c} = ?`,
+    total,
+    100,
+    `לפי הסדר: ${a} − ${b} = ${a - b}, ואז + ${c} = ${total}.`,
   );
 }
 
-function genDiv(level: Level): Question {
-  if (level === "easy") {
+function genAddSub(level: Level): Question {
+  if (level === "easy") return genAddSubEasy();
+  if (level === "normal") return genAddSubNormal();
+  return genAddSubHard();
+}
+
+function genDivEasy(): Question {
+  const form = randInt(0, 3);
+  if (form === 0) {
     const divisor = randInt(2, 5);
     const result = randInt(2, 10);
     const dividend = divisor * result;
@@ -391,7 +511,41 @@ function genDiv(level: Level): Question {
       `${divisor} × ${result} = ${dividend}, אז ${dividend} : ${divisor} = ${result}.`,
     );
   }
-  if (level === "normal") {
+  if (form === 1) {
+    const result = randInt(3, 12);
+    const n = result * 2;
+    return numericQuestion(
+      `חצי מ-${n} זה?`,
+      result,
+      3,
+      `${n} : 2 = ${result}.`,
+    );
+  }
+  if (form === 2) {
+    const kids = randInt(3, 5);
+    const per = randInt(3, 6);
+    const total = kids * per;
+    return numericQuestion(
+      `יש ${total} עוגיות ו-${kids} ילדים. כמה עוגיות לכל ילד בחלוקה שווה?`,
+      per,
+      4,
+      `${total} : ${kids} = ${per}.`,
+    );
+  }
+  const divisor = randInt(2, 5);
+  const result = randInt(2, 8);
+  const dividend = divisor * result;
+  return numericQuestion(
+    `__ : ${divisor} = ${result}`,
+    dividend,
+    6,
+    `${divisor} × ${result} = ${dividend}, אז המספר החסר הוא ${dividend}.`,
+  );
+}
+
+function genDivNormal(): Question {
+  const form = randInt(0, 4);
+  if (form === 0) {
     const divisor = randInt(2, 9);
     const result = randInt(3, 9);
     const dividend = divisor * result;
@@ -402,15 +556,112 @@ function genDiv(level: Level): Question {
       `${divisor} × ${result} = ${dividend}, אז ${dividend} : ${divisor} = ${result}.`,
     );
   }
-  const divisor = randInt(3, 12);
-  const result = randInt(3, 9);
-  const dividend = divisor * result;
+  if (form === 1) {
+    const divisor = randInt(2, 9);
+    const result = randInt(3, 9);
+    const dividend = divisor * result;
+    return numericQuestion(
+      `${dividend} : __ = ${result}`,
+      divisor,
+      4,
+      `${dividend} : ${divisor} = ${result}.`,
+    );
+  }
+  if (form === 2) {
+    const divisor = randInt(3, 8);
+    const result = randInt(3, 8);
+    const dividend = divisor * result;
+    return numericQuestion(
+      `__ : ${divisor} = ${result}`,
+      dividend,
+      6,
+      `${divisor} × ${result} = ${dividend}.`,
+    );
+  }
+  if (form === 3) {
+    const result = randInt(5, 15);
+    const n = result * 4;
+    return numericQuestion(
+      `רבע מ-${n} זה?`,
+      result,
+      4,
+      `${n} : 4 = ${result}.`,
+    );
+  }
+  const groups = pick([3, 4, 6]);
+  const per = randInt(4, 9);
+  const total = groups * per;
   return numericQuestion(
-    `${dividend} : __ = ${result}`,
-    divisor,
-    4,
-    `אם ${dividend} : x = ${result}, אז x = ${dividend} : ${result} = ${divisor}.`,
+    `${total} תלמידים מחולקים ל-${groups} קבוצות שוות. כמה בכל קבוצה?`,
+    per,
+    5,
+    `${total} : ${groups} = ${per}.`,
   );
+}
+
+function genDivHard(): Question {
+  const form = randInt(0, 4);
+  if (form === 0) {
+    const divisor = randInt(3, 12);
+    const result = randInt(3, 9);
+    const dividend = divisor * result;
+    return numericQuestion(
+      `${dividend} : __ = ${result}`,
+      divisor,
+      4,
+      `אם ${dividend} : x = ${result}, אז x = ${dividend} : ${result} = ${divisor}.`,
+    );
+  }
+  if (form === 1) {
+    const divisor = randInt(6, 12);
+    const result = randInt(5, 12);
+    const dividend = divisor * result;
+    return numericQuestion(
+      `${dividend} : ${divisor} = ?`,
+      result,
+      6,
+      `${divisor} × ${result} = ${dividend}.`,
+    );
+  }
+  if (form === 2) {
+    const divisor = randInt(5, 10);
+    const quotient = randInt(3, 8);
+    const remainder = randInt(1, divisor - 1);
+    const dividend = divisor * quotient + remainder;
+    return numericQuestion(
+      `כמה הוא שארית ב-${dividend} : ${divisor}?`,
+      remainder,
+      3,
+      `${divisor} × ${quotient} = ${divisor * quotient}. שארית: ${dividend} − ${divisor * quotient} = ${remainder}.`,
+    );
+  }
+  if (form === 3) {
+    const a = pick([2, 4, 6, 8]);
+    const b = pick([3, 5, 7, 9]);
+    const total = a * b * randInt(2, 5);
+    const result = total / (a * b);
+    return numericQuestion(
+      `${total} : ${a} : ${b} = ?`,
+      result,
+      4,
+      `${total} : ${a} = ${total / a}, ואז : ${b} = ${result}.`,
+    );
+  }
+  const total = pick([48, 60, 72, 84, 96]);
+  const parts = pick([4, 6, 8]);
+  const per = total / parts;
+  return numericQuestion(
+    `קראתי ${total} עמודים ב-${parts} ימים שווים. כמה עמודים ליום?`,
+    per,
+    5,
+    `${total} : ${parts} = ${per}.`,
+  );
+}
+
+function genDiv(level: Level): Question {
+  if (level === "easy") return genDivEasy();
+  if (level === "normal") return genDivNormal();
+  return genDivHard();
 }
 
 function fractionVisualEasy(): Question {
@@ -628,8 +879,9 @@ function genGeo(level: Level): Question {
   return genGeoHard();
 }
 
-function genMoney(level: Level): Question {
-  if (level === "easy") {
+function genMoneyEasy(): Question {
+  const form = randInt(0, 3);
+  if (form === 0) {
     const coins10 = randInt(1, 6);
     const coins5 = randInt(0, 5);
     const sum = coins10 * 10 + coins5 * 5;
@@ -637,29 +889,151 @@ function genMoney(level: Level): Question {
       `${coins10} מטבעות של 10₪ ו-${coins5} מטבעות של 5₪ — כמה יש בסך הכל?`,
       sum,
       9,
-      `${coins10} × 10 + ${coins5} × 5 = ${coins10 * 10} + ${coins5 * 5} = ${sum} שקלים.`,
+      `${coins10} × 10 + ${coins5} × 5 = ${sum}₪.`,
     );
   }
-  if (level === "normal") {
+  if (form === 1) {
+    const items = randInt(3, 7);
+    const price = randInt(2, 9);
+    const total = items * price;
+    return numericQuestion(
+      `קנית ${items} מדבקות, כל אחת עולה ${price}₪. כמה שילמת?`,
+      total,
+      8,
+      `${items} × ${price} = ${total}₪.`,
+    );
+  }
+  if (form === 2) {
+    const have = randInt(30, 70);
+    const spent = randInt(10, have - 5);
+    const left = have - spent;
+    return numericQuestion(
+      `היו לך ${have}₪. הוצאת ${spent}₪. כמה נשאר?`,
+      left,
+      8,
+      `${have} − ${spent} = ${left}₪.`,
+    );
+  }
+  const saved = randInt(20, 45);
+  const gift = randInt(10, 30);
+  const total = saved + gift;
+  return numericQuestion(
+    `חסכת ${saved}₪. סבתא נתנה לך עוד ${gift}₪. כמה יש לך?`,
+    total,
+    8,
+    `${saved} + ${gift} = ${total}₪.`,
+  );
+}
+
+function genMoneyNormal(): Question {
+  const form = randInt(0, 3);
+  if (form === 0) {
     const price = randInt(23, 89);
     const change = 100 - price;
     return numericQuestion(
-      `שילמת 100₪ עבור מוצר שעלה ${price}₪. כמה עודף מגיע לך?`,
+      `שילמת 100₪ עבור מוצר שעלה ${price}₪. כמה עודף?`,
       change,
       12,
       `100 − ${price} = ${change}₪ עודף.`,
     );
   }
-  const p1 = randInt(45, 160);
-  const p2 = randInt(35, 120);
-  const paid = Math.max(p1 + p2 + 20, 200);
-  const change = paid - (p1 + p2);
+  if (form === 1) {
+    const p1 = randInt(15, 45);
+    const p2 = randInt(15, 45);
+    const total = p1 + p2;
+    return numericQuestion(
+      `קנית חולצה ב-${p1}₪ ומכנסיים ב-${p2}₪. כמה שילמת בסך הכל?`,
+      total,
+      15,
+      `${p1} + ${p2} = ${total}₪.`,
+    );
+  }
+  if (form === 2) {
+    const need = randInt(80, 150);
+    const have = randInt(20, need - 20);
+    const still = need - have;
+    return numericQuestion(
+      `צעצוע עולה ${need}₪. חסכת ${have}₪. כמה עוד צריך לחסוך?`,
+      still,
+      15,
+      `${need} − ${have} = ${still}₪.`,
+    );
+  }
+  const items = randInt(3, 6);
+  const price = pick([7, 8, 9, 12, 15]);
+  const total = items * price;
   return numericQuestion(
-    `קנית ספר ב-${p1}₪ ומחברת ב-${p2}₪. שילמת ${paid}₪. כמה עודף?`,
-    change,
-    25,
-    `סכום הקניות: ${p1} + ${p2} = ${p1 + p2}. עודף: ${paid} − ${p1 + p2} = ${change}₪.`,
+    `${items} חברים קנו כל אחד בלון ב-${price}₪. כמה שילמו בסך הכל?`,
+    total,
+    15,
+    `${items} × ${price} = ${total}₪.`,
   );
+}
+
+function genMoneyHard(): Question {
+  const form = randInt(0, 3);
+  if (form === 0) {
+    const p1 = randInt(45, 160);
+    const p2 = randInt(35, 120);
+    const paid = Math.max(p1 + p2 + 20, 200);
+    const change = paid - (p1 + p2);
+    return numericQuestion(
+      `קנית ספר ב-${p1}₪ ומחברת ב-${p2}₪. שילמת ${paid}₪. כמה עודף?`,
+      change,
+      25,
+      `${p1} + ${p2} = ${p1 + p2}. ${paid} − ${p1 + p2} = ${change}₪.`,
+    );
+  }
+  if (form === 1) {
+    const price = randInt(80, 200);
+    const percent = pick([10, 20, 25]);
+    const discount = (price * percent) / 100;
+    const final = price - discount;
+    return numericQuestion(
+      `מוצר עלה ${price}₪ וקיבל הנחה של ${percent}%. כמה עולה עכשיו?`,
+      final,
+      20,
+      `${percent}% מתוך ${price} = ${discount}. ${price} − ${discount} = ${final}₪.`,
+    );
+  }
+  if (form === 2) {
+    const kids = randInt(3, 6);
+    const total = randInt(60, 180);
+    const roundedTotal = Math.floor(total / kids) * kids;
+    const per = roundedTotal / kids;
+    return numericQuestion(
+      `${kids} חברים חילקו ${roundedTotal}₪ בחלוקה שווה. כמה קיבל כל אחד?`,
+      per,
+      8,
+      `${roundedTotal} : ${kids} = ${per}₪.`,
+    );
+  }
+  const a = randInt(30, 90);
+  const b = randInt(30, 90);
+  const c = randInt(30, 90);
+  const paid = 250;
+  const change = paid - (a + b + c);
+  if (change < 0) {
+    const safe = paid - 100;
+    return numericQuestion(
+      `קנית ספרים ב-${a}₪, ${b}₪ ו-${safe}₪. שילמת ${paid}₪. כמה עודף?`,
+      paid - (a + b + safe),
+      30,
+      `${a} + ${b} + ${safe} = ${a + b + safe}. ${paid} − ${a + b + safe} = ${paid - (a + b + safe)}₪.`,
+    );
+  }
+  return numericQuestion(
+    `קנית 3 ספרים ב-${a}₪, ${b}₪ ו-${c}₪. שילמת ${paid}₪. כמה עודף?`,
+    change,
+    30,
+    `${a} + ${b} + ${c} = ${a + b + c}. ${paid} − ${a + b + c} = ${change}₪.`,
+  );
+}
+
+function genMoney(level: Level): Question {
+  if (level === "easy") return genMoneyEasy();
+  if (level === "normal") return genMoneyNormal();
+  return genMoneyHard();
 }
 
 const NAMES = ["דני", "מיה", "נועה", "יובל", "רוני", "אלה", "יוסי", "ליה", "שוש"];
@@ -986,7 +1360,21 @@ export function generateQuestions(
   level: Level,
   count: number,
 ): Question[] {
-  return Array.from({ length: count }, () => generateQuestion(topic, level));
+  const seen = new Set<string>();
+  const out: Question[] = [];
+  let guard = 0;
+  while (out.length < count && guard < 400) {
+    guard++;
+    const q = generateQuestion(topic, level);
+    const key = `${q.question}|${q.correctAnswer}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+  }
+  while (out.length < count) {
+    out.push(generateQuestion(topic, level));
+  }
+  return out;
 }
 
 export function isTopic(v: string | null): v is Topic {
