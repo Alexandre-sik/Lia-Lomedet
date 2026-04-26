@@ -60,8 +60,12 @@ export default function MulRacePage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const recordedRef = useRef(false);
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (phase === "playing" && startedAtRef.current === null) {
+      startedAtRef.current = Date.now();
+    }
     if (phase !== "playing") return;
     const id = setInterval(() => {
       setTimeLeft((t) => {
@@ -78,7 +82,7 @@ export default function MulRacePage() {
   useEffect(() => {
     if (phase === "done" && !recordedRef.current) {
       recordedRef.current = true;
-      recordGamePlay("mul", score);
+      recordGamePlay("mul", score, startedAtRef.current ?? undefined);
     }
   }, [phase, score]);
 
@@ -109,6 +113,7 @@ export default function MulRacePage() {
 
   const start = () => {
     recordedRef.current = false;
+    startedAtRef.current = Date.now();
     setPhase("playing");
     setTimeLeft(GAME_DURATION);
     setScore(0);

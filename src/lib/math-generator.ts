@@ -13,13 +13,25 @@ export type Visual =
   | { kind: "compare-frac"; a: [number, number]; b: [number, number] }
   | {
       kind: "shape";
-      shape: "triangle" | "square" | "rectangle" | "circle";
+      shape:
+        | "triangle"
+        | "square"
+        | "rectangle"
+        | "circle"
+        | "rhombus"
+        | "parallelogram"
+        | "trapezoid"
+        | "pentagon"
+        | "hexagon";
     }
   | {
       kind: "triangle-type";
-      type: "equilateral" | "isosceles" | "scalene";
+      type: "equilateral" | "isosceles" | "scalene" | "right";
     }
-  | { kind: "angle-type"; type: "acute" | "right" | "obtuse" };
+  | { kind: "angle-type"; type: "acute" | "right" | "obtuse" | "straight" }
+  | { kind: "rect-area"; w: number; h: number; unit?: string }
+  | { kind: "perimeter-rect"; w: number; h: number; unit?: string }
+  | { kind: "symmetry-axes"; shape: "square" | "rectangle" | "equilateral" | "isosceles" | "circle" | "rhombus"; axes: number };
 
 export type Question = {
   question: string;
@@ -126,172 +138,206 @@ function textQuestion(
   };
 }
 
+// =====================================================================
+// MULTIPLICATION — CM1 EASY: tables 2-7 / NORMAL: tables 2-12 / HARD: 2-digit × 1-digit
+// =====================================================================
+
 function genMulEasy(): Question {
-  const form = randInt(0, 3);
+  const form = randInt(0, 4);
   if (form === 0) {
     const a = randInt(2, 7);
-    const b = randInt(2, 7);
+    const b = randInt(2, 9);
     const c = a * b;
     return numericQuestion(
       `${a} × ${b} = ?`,
       c,
-      6,
+      8,
       `${a} × ${b} = ${c}. חושבים על זה כ-${a} פעמים ${b}.`,
     );
   }
   if (form === 1) {
-    const a = randInt(2, 7);
-    const b = randInt(2, 7);
-    const c = a * b;
-    return numericQuestion(
-      `${b} × ${a} = ?`,
-      c,
-      6,
-      `חוק החילוף: ${b} × ${a} = ${a} × ${b} = ${c}.`,
-    );
-  }
-  if (form === 2) {
-    const a = randInt(2, 7);
-    const b = randInt(2, 7);
-    const c = a * b;
-    return numericQuestion(
-      `? × ${b} = ${c}`,
-      a,
-      4,
-      `${a} × ${b} = ${c}, אז המספר החסר הוא ${a}.`,
-    );
-  }
-  const groups = randInt(2, 6);
-  const per = randInt(2, 6);
-  const total = groups * per;
-  return numericQuestion(
-    `יש ${groups} קבוצות של ${per} ילדים. כמה ילדים בסך הכל?`,
-    total,
-    6,
-    `${groups} × ${per} = ${total}. קבוצות שוות → כפל.`,
-  );
-}
-
-function genMulNormal(): Question {
-  const form = randInt(0, 4);
-  if (form === 0) {
-    const a = randInt(2, 10);
-    const b = randInt(2, 10);
-    const c = a * b;
-    return numericQuestion(`${a} × ${b} = ?`, c, 10, `${a} × ${b} = ${c}`);
-  }
-  if (form === 1) {
-    const a = randInt(3, 10);
-    const b = randInt(3, 10);
-    const c = a * b;
-    return numericQuestion(
-      `${b} × ${a} = ?`,
-      c,
-      10,
-      `${b} × ${a} = ${a} × ${b} = ${c}.`,
-    );
-  }
-  if (form === 2) {
-    const a = randInt(3, 9);
-    const b = randInt(3, 9);
-    const c = a * b;
-    return numericQuestion(
-      `? × ${b} = ${c}`,
-      a,
-      4,
-      `${a} × ${b} = ${c}, אז המספר החסר הוא ${a}.`,
-    );
-  }
-  if (form === 3) {
-    const a = randInt(2, 10);
+    const a = randInt(2, 9);
     const c = a * 10;
     return numericQuestion(
       `${a} × 10 = ?`,
       c,
       10,
-      `כפל ב-10: מוסיפים 0 בסוף. ${a} × 10 = ${c}.`,
+      `כפל ב-10: מוסיפים אפס בסוף. ${a} × 10 = ${c}.`,
     );
   }
-  const boxes = randInt(3, 9);
-  const per = randInt(4, 9);
-  const total = boxes * per;
+  if (form === 2) {
+    const a = randInt(2, 9);
+    const b = randInt(2, 9);
+    const c = a * b;
+    return numericQuestion(
+      `? × ${b} = ${c}`,
+      a,
+      6,
+      `${a} × ${b} = ${c}, אז המספר החסר הוא ${a}.`,
+    );
+  }
+  if (form === 3) {
+    const a = randInt(2, 7);
+    const c = a * 5;
+    return numericQuestion(
+      `${a} × 5 = ?`,
+      c,
+      8,
+      `כפל ב-5: ${a} × 5 = ${c}. טריק: כפל ב-10 ואז חצי.`,
+    );
+  }
+  const groups = randInt(3, 8);
+  const per = randInt(3, 8);
+  const total = groups * per;
   return numericQuestion(
-    `בחנות ${boxes} קופסאות של עפרונות, כל קופסה עם ${per} עפרונות. כמה עפרונות בסך הכל?`,
+    `יש ${groups} קופסאות עם ${per} עפרונות בכל אחת. כמה עפרונות בסך הכל?`,
     total,
     10,
+    `${groups} × ${per} = ${total}. קבוצות שוות → כפל.`,
+  );
+}
+
+function genMulNormal(): Question {
+  const form = randInt(0, 5);
+  if (form === 0) {
+    const a = randInt(3, 12);
+    const b = randInt(3, 12);
+    const c = a * b;
+    return numericQuestion(`${a} × ${b} = ?`, c, 12, `${a} × ${b} = ${c}.`);
+  }
+  if (form === 1) {
+    const a = randInt(2, 9);
+    const c = a * 100;
+    return numericQuestion(
+      `${a} × 100 = ?`,
+      c,
+      150,
+      `כפל ב-100: מוסיפים שתי אפסים. ${a} × 100 = ${c}.`,
+    );
+  }
+  if (form === 2) {
+    const a = randInt(2, 9);
+    const b = randInt(2, 9);
+    const k = pick([10, 20, 30, 40, 50]);
+    const c = a * (b + k);
+    return numericQuestion(
+      `${a} × ${b + k} = ?`,
+      c,
+      30,
+      `מפרקים: ${a} × (${b} + ${k}) = ${a} × ${b} + ${a} × ${k} = ${a * b} + ${a * k} = ${c}.`,
+    );
+  }
+  if (form === 3) {
+    const a = randInt(11, 19);
+    const b = randInt(2, 9);
+    const c = a * b;
+    return numericQuestion(
+      `${a} × ${b} = ?`,
+      c,
+      20,
+      `${a} × ${b} = (10 + ${a - 10}) × ${b} = ${10 * b} + ${(a - 10) * b} = ${c}.`,
+    );
+  }
+  if (form === 4) {
+    const a = randInt(3, 12);
+    const b = randInt(3, 12);
+    const c = a * b;
+    return numericQuestion(
+      `${a} × __ = ${c}`,
+      b,
+      6,
+      `${a} × ${b} = ${c}, אז המספר החסר הוא ${b}.`,
+    );
+  }
+  const boxes = randInt(4, 9);
+  const per = randInt(7, 12);
+  const total = boxes * per;
+  return numericQuestion(
+    `בחנות ${boxes} מדפים, ועל כל מדף ${per} ספרים. כמה ספרים בחנות?`,
+    total,
+    20,
     `${boxes} × ${per} = ${total}. קבוצות שוות → כפל.`,
   );
 }
 
 function genMulHard(): Question {
-  const form = randInt(0, 5);
+  const form = randInt(0, 6);
   if (form === 0) {
-    const a = randInt(3, 9);
-    const b = randInt(3, 9);
-    const prod = a * b;
-    const N = prod + randInt(10, 40);
-    const c = N - prod;
-    return numericQuestion(
-      `${N} − ${a} × ${b} = ?`,
-      c,
-      12,
-      `קודם כפל: ${a} × ${b} = ${prod}. אחר כך ${N} − ${prod} = ${c}.`,
-    );
-  }
-  if (form === 1) {
-    const a = randInt(2, 9);
-    const b = randInt(2, 9);
-    const prod = a * b;
-    const N = randInt(3, 25);
-    const c = N + prod;
-    return numericQuestion(
-      `${N} + ${a} × ${b} = ?`,
-      c,
-      12,
-      `קודם כפל: ${a} × ${b} = ${prod}. אחר כך ${N} + ${prod} = ${c}.`,
-    );
-  }
-  if (form === 2) {
-    const a = randInt(11, 15);
+    const a = randInt(13, 39);
     const b = randInt(3, 9);
     const c = a * b;
     return numericQuestion(
       `${a} × ${b} = ?`,
       c,
-      15,
-      `טריק: ${a} × ${b} = ${a - 10} × ${b} + 10 × ${b} = ${(a - 10) * b} + ${10 * b} = ${c}.`,
+      30,
+      `מחשבים בעמודה: יחידות ${a % 10} × ${b} = ${(a % 10) * b}, עשרות ${Math.floor(a / 10)} × ${b} × 10 = ${Math.floor(a / 10) * b * 10}. סכום: ${c}.`,
+    );
+  }
+  if (form === 1) {
+    const a = randInt(15, 25);
+    const b = randInt(11, 25);
+    const c = a * b;
+    return numericQuestion(
+      `${a} × ${b} = ?`,
+      c,
+      80,
+      `${a} × ${b}: מפרקים ${b} ל-(${10 * Math.floor(b / 10)} + ${b % 10}) ומכפילים: ${a * 10 * Math.floor(b / 10)} + ${a * (b % 10)} = ${c}.`,
+    );
+  }
+  if (form === 2) {
+    const a = randInt(3, 9);
+    const b = randInt(3, 9);
+    const k = randInt(2, 6);
+    const total = a * b * k;
+    return numericQuestion(
+      `${a} × ${b} × ${k} = ?`,
+      total,
+      40,
+      `מכפילים בסדר: ${a} × ${b} = ${a * b}, ואז × ${k} = ${total}.`,
     );
   }
   if (form === 3) {
-    const a = randInt(3, 9);
-    const b = randInt(3, 9);
-    const c = a * b;
+    const a = randInt(4, 9);
+    const b = randInt(4, 9);
+    const prod = a * b;
+    const N = prod + randInt(20, 80);
+    const c = N - prod;
     return numericQuestion(
-      `${a} × __ = ${c}`,
-      b,
-      4,
-      `${a} × ${b} = ${c}, אז המספר החסר הוא ${b}.`,
+      `${N} − ${a} × ${b} = ?`,
+      c,
+      25,
+      `קודם כפל: ${a} × ${b} = ${prod}. אחר כך ${N} − ${prod} = ${c}.`,
     );
   }
   if (form === 4) {
-    const groups = randInt(4, 9);
-    const per = randInt(5, 12);
-    const total = groups * per;
+    const a = randInt(11, 19);
+    const c = a * 99;
     return numericQuestion(
-      `ליה ארזה ${groups} חבילות שוות. אם בסך הכל יש ${total} ממתקים, כמה ממתקים בכל חבילה?`,
-      per,
-      5,
-      `${total} : ${groups} = ${per} (חילוק = היפוך של כפל).`,
+      `${a} × 99 = ?`,
+      c,
+      80,
+      `טריק: ${a} × 99 = ${a} × 100 − ${a} = ${a * 100} − ${a} = ${c}.`,
     );
   }
-  const a = randInt(12, 20);
-  const b = randInt(2, 9);
-  const c = a * b;
+  if (form === 5) {
+    const a = pick([12, 15, 18, 24, 25]);
+    const b = randInt(4, 8);
+    const c = a * b;
+    return numericQuestion(
+      `${a} × ${b} = ?`,
+      c,
+      30,
+      `${a} × ${b} = ${c}.`,
+    );
+  }
+  const items = randInt(8, 15);
+  const price = pick([12, 15, 18, 25, 30]);
+  const total = items * price;
   return numericQuestion(
-    `${a} × ${b} = ?`,
-    c,
-    20,
-    `${a} × ${b} = ${c}`,
+    `קנינו ${items} ספרים ב-${price}₪ כל אחד. כמה שילמנו בסך הכל?`,
+    total,
+    50,
+    `${items} × ${price} = ${total}₪.`,
   );
 }
 
@@ -301,194 +347,223 @@ function genMul(level: Level): Question {
   return genMulHard();
 }
 
-function noCarryAdd(digits: number): [number, number] {
-  let a = 0;
-  let b = 0;
-  for (let i = 0; i < digits; i++) {
-    const leading = i === 0;
-    const aDigit = randInt(leading ? 1 : 0, 4);
-    const bDigit = randInt(0, Math.max(0, 9 - aDigit - 1));
-    a = a * 10 + aDigit;
-    b = b * 10 + bDigit;
-  }
-  return [a, b];
-}
+// =====================================================================
+// ADDITION/SUBTRACTION — CM1 EASY: 2 digits / NORMAL: 3 digits / HARD: 4-5 digits + decimals
+// =====================================================================
 
 function genAddSubEasy(): Question {
-  const form = randInt(0, 4);
+  const form = randInt(0, 5);
   if (form === 0) {
-    const [a, b] = noCarryAdd(2);
+    const a = randInt(15, 95);
+    const b = randInt(5, 90);
     const c = a + b;
     return numericQuestion(
       `${a} + ${b} = ?`,
       c,
-      8,
-      `${a} + ${b} = ${c}. מחברים יחידות ואז עשרות.`,
+      15,
+      `${a} + ${b} = ${c}.`,
     );
   }
   if (form === 1) {
-    const [a, b] = noCarryAdd(2);
-    const big = Math.max(a, b);
-    const small = Math.min(a, b);
-    const c = big - small;
+    const a = randInt(35, 99);
+    const b = randInt(5, a - 5);
+    const c = a - b;
     return numericQuestion(
-      `${big} − ${small} = ?`,
+      `${a} − ${b} = ?`,
       c,
-      8,
-      `${big} − ${small} = ${c}. מחסרים יחידות ואז עשרות.`,
+      12,
+      `${a} − ${b} = ${c}.`,
     );
   }
   if (form === 2) {
-    const a = randInt(3, 25);
-    const missing = randInt(3, 20);
+    const a = randInt(20, 60);
+    const missing = randInt(15, 40);
     const c = a + missing;
     return numericQuestion(
       `${a} + __ = ${c}`,
       missing,
-      5,
+      10,
       `${a} + ${missing} = ${c}, אז המספר החסר הוא ${missing}.`,
     );
   }
   if (form === 3) {
-    const a = randInt(20, 60);
-    const missing = randInt(3, a - 3);
+    const a = randInt(50, 99);
+    const missing = randInt(10, a - 5);
     const c = a - missing;
     return numericQuestion(
       `${a} − __ = ${c}`,
       missing,
-      5,
+      10,
       `${a} − ${missing} = ${c}, אז המספר החסר הוא ${missing}.`,
     );
   }
-  const x = randInt(1, 8);
-  const y = randInt(1, 8);
-  const z = randInt(1, 8);
-  const sum = x + y + z;
+  if (form === 4) {
+    const x = randInt(10, 30);
+    const y = randInt(10, 30);
+    const z = randInt(5, 20);
+    const sum = x + y + z;
+    return numericQuestion(
+      `${x} + ${y} + ${z} = ?`,
+      sum,
+      15,
+      `מחברים בסדר: ${x} + ${y} = ${x + y}, ואז + ${z} = ${sum}.`,
+    );
+  }
+  const a = randInt(40, 90);
+  const c = 100 - a;
   return numericQuestion(
-    `${x} + ${y} + ${z} = ?`,
-    sum,
-    5,
-    `מחברים לפי הסדר: ${x} + ${y} = ${x + y}, ואז + ${z} = ${sum}.`,
+    `${a} + __ = 100`,
+    c,
+    10,
+    `${a} + ${c} = 100. כמה צריך להוסיף ל-${a} כדי להגיע ל-100? — ${c}.`,
   );
 }
 
 function genAddSubNormal(): Question {
-  const form = randInt(0, 4);
+  const form = randInt(0, 5);
   if (form === 0) {
-    const a = randInt(150, 950);
-    const b = randInt(50, 900);
+    const a = randInt(250, 950);
+    const b = randInt(150, 900);
     const c = a + b;
     return numericQuestion(
       `${a} + ${b} = ?`,
       c,
-      30,
-      `שימי לב להחזר: ${a} + ${b} = ${c}.`,
+      40,
+      `מחברים בעמודה. ${a} + ${b} = ${c}.`,
     );
   }
   if (form === 1) {
-    const a = randInt(200, 950);
-    const b = randInt(50, a - 50);
+    const a = randInt(450, 950);
+    const b = randInt(120, a - 50);
     const c = a - b;
     return numericQuestion(
       `${a} − ${b} = ?`,
       c,
-      30,
-      `שימי לב לשאילה: ${a} − ${b} = ${c}.`,
+      40,
+      `מחסרים בעמודה. ${a} − ${b} = ${c}.`,
     );
   }
   if (form === 2) {
-    const a = randInt(40, 220);
-    const missing = randInt(30, 200);
+    const a = randInt(120, 450);
+    const missing = randInt(120, 400);
     const c = a + missing;
     return numericQuestion(
       `${a} + __ = ${c}`,
       missing,
-      20,
+      30,
       `${a} + ${missing} = ${c}.`,
     );
   }
   if (form === 3) {
-    const a = randInt(80, 300);
-    const b = randInt(20, 100);
-    const c = randInt(10, 50);
+    const a = randInt(180, 450);
+    const b = randInt(90, 200);
+    const c = randInt(50, 150);
     const total = a + b - c;
     return numericQuestion(
       `${a} + ${b} − ${c} = ?`,
       total,
-      20,
+      30,
       `לפי הסדר: ${a} + ${b} = ${a + b}, ואז − ${c} = ${total}.`,
     );
   }
-  const near10 = randInt(4, 12) * 10;
-  const close = randInt(-9, 9);
-  const b = near10 + close;
-  const add = randInt(30, 80);
-  const result = b + add;
+  if (form === 4) {
+    const a = randInt(550, 990);
+    const c = 1000 - a;
+    return numericQuestion(
+      `${a} + __ = 1000`,
+      c,
+      30,
+      `כמה משלים ל-1000? ${a} + ${c} = 1000.`,
+    );
+  }
+  const a = randInt(150, 450);
+  const b = randInt(60, 180);
+  const c = randInt(40, 120);
+  const d = randInt(50, 150);
+  const total = a + b - c + d;
   return numericQuestion(
-    `${b} + ${add} = ?`,
-    result,
-    15,
-    `אם ${b} קרוב ל-${near10}, אפשר לחשוב: ${near10} + ${add} = ${near10 + add}, ואז ${close < 0 ? "להוסיף" : "להפחית"} ${Math.abs(close)}.`,
+    `${a} + ${b} − ${c} + ${d} = ?`,
+    total,
+    40,
+    `לפי הסדר: ${a} + ${b} = ${a + b}, − ${c} = ${a + b - c}, + ${d} = ${total}.`,
   );
 }
 
 function genAddSubHard(): Question {
-  const form = randInt(0, 4);
+  const form = randInt(0, 5);
   if (form === 0) {
-    const a = randInt(2000, 9000);
-    const b = randInt(200, a - 100);
+    const a = randInt(2500, 8500);
+    const b = randInt(800, a - 200);
     const c = a + b;
     return numericQuestion(
       `${a} + ${b} = ?`,
       c,
-      80,
-      `מחברים בטור מהיחידות לאלפים: ${a} + ${b} = ${c}.`,
+      150,
+      `מחברים בעמודה מהיחידות לאלפים. ${a} + ${b} = ${c}.`,
     );
   }
   if (form === 1) {
-    const a = randInt(2000, 9500);
-    const b = randInt(200, a - 100);
+    const a = randInt(4000, 9500);
+    const b = randInt(800, a - 500);
     const c = a - b;
     return numericQuestion(
       `${a} − ${b} = ?`,
       c,
-      80,
-      `מחסרים בטור מהיחידות: ${a} − ${b} = ${c}.`,
+      150,
+      `מחסרים בעמודה. ${a} − ${b} = ${c}.`,
     );
   }
   if (form === 2) {
-    const a = randInt(500, 2500);
-    const missing = randInt(500, 2000);
-    const c = a + missing;
+    // Decimals — CM2 territory
+    const aWhole = randInt(5, 15);
+    const aDec = randInt(1, 9);
+    const bWhole = randInt(2, 8);
+    const bDec = randInt(1, 9);
+    const a = aWhole + aDec / 10;
+    const b = bWhole + bDec / 10;
+    const c = +(a + b).toFixed(1);
     return numericQuestion(
-      `${a} + __ = ${c}`,
-      missing,
-      100,
-      `${a} + ${missing} = ${c}.`,
+      `${a.toFixed(1)} + ${b.toFixed(1)} = ?`,
+      c,
+      5,
+      `מחברים מספרים עשרוניים: מיישרים את הנקודה ומחברים. ${a.toFixed(1)} + ${b.toFixed(1)} = ${c.toFixed(1)}.`,
     );
   }
   if (form === 3) {
-    const a = randInt(1000, 4000);
-    const b = randInt(300, 1500);
-    const c = randInt(100, 800);
-    const d = randInt(100, 600);
+    const a = randInt(10, 25);
+    const aDec = randInt(2, 9);
+    const aTotal = a + aDec / 10;
+    const bWhole = randInt(3, a - 2);
+    const bDec = randInt(1, aDec - 1);
+    const bTotal = bWhole + bDec / 10;
+    const c = +(aTotal - bTotal).toFixed(1);
+    return numericQuestion(
+      `${aTotal.toFixed(1)} − ${bTotal.toFixed(1)} = ?`,
+      c,
+      5,
+      `מחסרים מספרים עשרוניים: מיישרים את הנקודה. ${aTotal.toFixed(1)} − ${bTotal.toFixed(1)} = ${c.toFixed(1)}.`,
+    );
+  }
+  if (form === 4) {
+    const a = randInt(1500, 4500);
+    const b = randInt(400, 1500);
+    const c = randInt(200, 800);
+    const d = randInt(200, 700);
     const total = a + b - c - d;
     return numericQuestion(
       `${a} + ${b} − ${c} − ${d} = ?`,
       total,
-      100,
+      120,
       `לפי הסדר: ${a} + ${b} − ${c} − ${d} = ${total}.`,
     );
   }
-  const a = randInt(1000, 5000);
-  const b = randInt(100, a - 500);
-  const c = randInt(100, 1000);
-  const total = a - b + c;
+  const a = randInt(7500, 9999);
+  const c = 10000 - a;
   return numericQuestion(
-    `${a} − ${b} + ${c} = ?`,
-    total,
-    100,
-    `לפי הסדר: ${a} − ${b} = ${a - b}, ואז + ${c} = ${total}.`,
+    `${a} + __ = 10,000`,
+    c,
+    150,
+    `משלים ל-10,000: 10,000 − ${a} = ${c}.`,
   );
 }
 
@@ -498,163 +573,202 @@ function genAddSub(level: Level): Question {
   return genAddSubHard();
 }
 
+// =====================================================================
+// DIVISION — CM1 EASY: simple / NORMAL: with remainder / HARD: long division
+// =====================================================================
+
 function genDivEasy(): Question {
-  const form = randInt(0, 3);
+  const form = randInt(0, 4);
   if (form === 0) {
-    const divisor = randInt(2, 5);
-    const result = randInt(2, 10);
+    const divisor = randInt(2, 6);
+    const result = randInt(3, 10);
     const dividend = divisor * result;
     return numericQuestion(
       `${dividend} : ${divisor} = ?`,
       result,
-      4,
+      6,
       `${divisor} × ${result} = ${dividend}, אז ${dividend} : ${divisor} = ${result}.`,
     );
   }
   if (form === 1) {
-    const result = randInt(3, 12);
+    const result = randInt(4, 15);
     const n = result * 2;
     return numericQuestion(
       `חצי מ-${n} זה?`,
       result,
-      3,
+      5,
       `${n} : 2 = ${result}.`,
     );
   }
   if (form === 2) {
-    const kids = randInt(3, 5);
-    const per = randInt(3, 6);
-    const total = kids * per;
+    const result = randInt(3, 12);
+    const n = result * 4;
     return numericQuestion(
-      `יש ${total} עוגיות ו-${kids} ילדים. כמה עוגיות לכל ילד בחלוקה שווה?`,
-      per,
-      4,
-      `${total} : ${kids} = ${per}.`,
+      `רבע מ-${n} זה?`,
+      result,
+      5,
+      `${n} : 4 = ${result}.`,
     );
   }
-  const divisor = randInt(2, 5);
-  const result = randInt(2, 8);
-  const dividend = divisor * result;
+  if (form === 3) {
+    const result = randInt(3, 10);
+    const n = result * 3;
+    return numericQuestion(
+      `שליש מ-${n} זה?`,
+      result,
+      5,
+      `${n} : 3 = ${result}.`,
+    );
+  }
+  const kids = randInt(3, 6);
+  const per = randInt(4, 8);
+  const total = kids * per;
   return numericQuestion(
-    `__ : ${divisor} = ${result}`,
-    dividend,
+    `יש ${total} ממתקים ו-${kids} ילדים. בחלוקה שווה — כמה לכל ילד?`,
+    per,
     6,
-    `${divisor} × ${result} = ${dividend}, אז המספר החסר הוא ${dividend}.`,
+    `${total} : ${kids} = ${per}.`,
   );
 }
 
 function genDivNormal(): Question {
-  const form = randInt(0, 4);
+  const form = randInt(0, 5);
   if (form === 0) {
-    const divisor = randInt(2, 9);
-    const result = randInt(3, 9);
+    const divisor = randInt(3, 12);
+    const result = randInt(4, 12);
     const dividend = divisor * result;
     return numericQuestion(
       `${dividend} : ${divisor} = ?`,
       result,
-      4,
+      8,
       `${divisor} × ${result} = ${dividend}, אז ${dividend} : ${divisor} = ${result}.`,
     );
   }
   if (form === 1) {
     const divisor = randInt(2, 9);
-    const result = randInt(3, 9);
-    const dividend = divisor * result;
+    const quotient = randInt(4, 12);
+    const remainder = randInt(1, divisor - 1);
+    const dividend = divisor * quotient + remainder;
     return numericQuestion(
-      `${dividend} : __ = ${result}`,
-      divisor,
+      `שארית: ${dividend} : ${divisor} = ?, מה השארית?`,
+      remainder,
       4,
-      `${dividend} : ${divisor} = ${result}.`,
+      `${divisor} × ${quotient} = ${divisor * quotient}. שארית: ${dividend} − ${divisor * quotient} = ${remainder}.`,
     );
   }
   if (form === 2) {
-    const divisor = randInt(3, 8);
-    const result = randInt(3, 8);
-    const dividend = divisor * result;
+    const divisor = randInt(2, 9);
+    const quotient = randInt(4, 12);
+    const remainder = randInt(1, divisor - 1);
+    const dividend = divisor * quotient + remainder;
     return numericQuestion(
-      `__ : ${divisor} = ${result}`,
-      dividend,
-      6,
-      `${divisor} × ${result} = ${dividend}.`,
+      `${dividend} : ${divisor} = ?, מה המנה (השלם)?`,
+      quotient,
+      5,
+      `${divisor} × ${quotient} = ${divisor * quotient}, השארית ${remainder}. אז המנה היא ${quotient}.`,
     );
   }
   if (form === 3) {
-    const result = randInt(5, 15);
-    const n = result * 4;
+    const a = pick([100, 200, 300, 400, 500]);
+    const d = pick([2, 4, 5, 10]);
+    const c = a / d;
     return numericQuestion(
-      `רבע מ-${n} זה?`,
-      result,
-      4,
-      `${n} : 4 = ${result}.`,
+      `${a} : ${d} = ?`,
+      c,
+      30,
+      `${a} : ${d} = ${c}. ניתן לפרק: ${a} : ${d}.`,
     );
   }
-  const groups = pick([3, 4, 6]);
-  const per = randInt(4, 9);
-  const total = groups * per;
+  if (form === 4) {
+    const result = randInt(8, 25);
+    const n = result * 5;
+    return numericQuestion(
+      `חמישית מ-${n} זה?`,
+      result,
+      8,
+      `${n} : 5 = ${result}. חמישית = 1 חלקי 5.`,
+    );
+  }
+  const total = pick([60, 72, 84, 96, 108]);
+  const parts = pick([4, 6, 8, 12]);
+  const per = total / parts;
   return numericQuestion(
-    `${total} תלמידים מחולקים ל-${groups} קבוצות שוות. כמה בכל קבוצה?`,
+    `${total} עמודים נקראו ב-${parts} ימים שווים. כמה עמודים ליום?`,
     per,
-    5,
-    `${total} : ${groups} = ${per}.`,
+    6,
+    `${total} : ${parts} = ${per}.`,
   );
 }
 
 function genDivHard(): Question {
-  const form = randInt(0, 4);
+  const form = randInt(0, 5);
   if (form === 0) {
-    const divisor = randInt(3, 12);
-    const result = randInt(3, 9);
-    const dividend = divisor * result;
+    // Long division (3-digit ÷ 1-digit)
+    const divisor = randInt(3, 9);
+    const quotient = randInt(20, 99);
+    const dividend = divisor * quotient;
     return numericQuestion(
-      `${dividend} : __ = ${result}`,
-      divisor,
-      4,
-      `אם ${dividend} : x = ${result}, אז x = ${dividend} : ${result} = ${divisor}.`,
+      `${dividend} : ${divisor} = ?`,
+      quotient,
+      20,
+      `חילוק ארוך: ${dividend} : ${divisor} = ${quotient}.`,
     );
   }
   if (form === 1) {
-    const divisor = randInt(6, 12);
-    const result = randInt(5, 12);
-    const dividend = divisor * result;
-    return numericQuestion(
-      `${dividend} : ${divisor} = ?`,
-      result,
-      6,
-      `${divisor} × ${result} = ${dividend}.`,
-    );
-  }
-  if (form === 2) {
-    const divisor = randInt(5, 10);
-    const quotient = randInt(3, 8);
+    // 3-digit ÷ 1-digit with remainder
+    const divisor = randInt(3, 9);
+    const quotient = randInt(15, 80);
     const remainder = randInt(1, divisor - 1);
     const dividend = divisor * quotient + remainder;
     return numericQuestion(
-      `כמה הוא שארית ב-${dividend} : ${divisor}?`,
+      `${dividend} : ${divisor} = ?, השארית?`,
       remainder,
-      3,
+      4,
       `${divisor} × ${quotient} = ${divisor * quotient}. שארית: ${dividend} − ${divisor * quotient} = ${remainder}.`,
+    );
+  }
+  if (form === 2) {
+    const a = pick([1000, 2000, 3000, 5000]);
+    const d = pick([4, 5, 8, 10, 25]);
+    const c = a / d;
+    return numericQuestion(
+      `${a} : ${d} = ?`,
+      c,
+      80,
+      `${a} : ${d} = ${c}.`,
     );
   }
   if (form === 3) {
     const a = pick([2, 4, 6, 8]);
     const b = pick([3, 5, 7, 9]);
-    const total = a * b * randInt(2, 5);
+    const total = a * b * randInt(3, 6);
     const result = total / (a * b);
     return numericQuestion(
       `${total} : ${a} : ${b} = ?`,
       result,
-      4,
+      6,
       `${total} : ${a} = ${total / a}, ואז : ${b} = ${result}.`,
     );
   }
-  const total = pick([48, 60, 72, 84, 96]);
-  const parts = pick([4, 6, 8]);
-  const per = total / parts;
+  if (form === 4) {
+    // Decimal division
+    const result = randInt(15, 45);
+    const result10 = result / 10;
+    return numericQuestion(
+      `${result} : 10 = ?`,
+      result10,
+      5,
+      `חילוק ב-10: מזיזים את הנקודה העשרונית מקום אחד שמאלה. ${result} : 10 = ${result10.toFixed(1)}.`,
+    );
+  }
+  const treesAdj = pick([4, 6, 8, 12]);
+  const total = treesAdj * pick([7, 8, 9, 12]);
+  const each = total / treesAdj;
   return numericQuestion(
-    `קראתי ${total} עמודים ב-${parts} ימים שווים. כמה עמודים ליום?`,
-    per,
-    5,
-    `${total} : ${parts} = ${per}.`,
+    `${total} ממתקים חולקו שווה בין ${treesAdj} ילדים. כמה קיבל כל ילד?`,
+    each,
+    8,
+    `${total} : ${treesAdj} = ${each}.`,
   );
 }
 
@@ -664,6 +778,10 @@ function genDiv(level: Level): Question {
   return genDivHard();
 }
 
+// =====================================================================
+// FRACTIONS — CM1 EASY: visual identification / NORMAL: equivalent + compare / HARD: add/sub same denominator + decimals
+// =====================================================================
+
 function fractionVisualEasy(): Question {
   const choices: Array<[number, number]> = [
     [1, 2],
@@ -672,10 +790,14 @@ function fractionVisualEasy(): Question {
     [2, 3],
     [2, 4],
     [3, 4],
+    [1, 5],
     [2, 5],
     [3, 5],
+    [4, 5],
     [1, 6],
     [5, 6],
+    [3, 8],
+    [5, 8],
   ];
   const [num, den] = pick(choices);
   const correct = `${num}/${den}`;
@@ -689,13 +811,25 @@ function fractionVisualEasy(): Question {
     question: "איזה שבר מייצג הצורה הצבועה?",
     correctAnswer: correct,
     options: shuffle([correct, ...distractors]),
-    explanation: `בצורה יש ${den} חלקים שווים, ${num} מהם צבועים — לכן השבר הוא ${correct}.`,
+    explanation: `בצורה ${den} חלקים שווים, ${num} מהם צבועים — לכן השבר הוא ${correct}.`,
     visual: { kind: "fraction", num, den },
   };
 }
 
+function fractionFromTextEasy(): Question {
+  const opts: Array<() => Question> = [
+    () => numericQuestion("חצי מ-12 זה?", 6, 5, "חצי = 1 חלקי 2. 12 : 2 = 6."),
+    () => numericQuestion("רבע מ-20 זה?", 5, 5, "רבע = 1 חלקי 4. 20 : 4 = 5."),
+    () => numericQuestion("שליש מ-15 זה?", 5, 5, "שליש = 1 חלקי 3. 15 : 3 = 5."),
+    () => numericQuestion("חמישית מ-25 זה?", 5, 5, "חמישית = 1 חלקי 5. 25 : 5 = 5."),
+    () => numericQuestion("שישית מ-18 זה?", 3, 4, "שישית = 1 חלקי 6. 18 : 6 = 3."),
+    () => numericQuestion("שמינית מ-32 זה?", 4, 5, "שמינית = 1 חלקי 8. 32 : 8 = 4."),
+  ];
+  return pick(opts)();
+}
+
 function fractionCompareNormal(): Question {
-  const den = pick([4, 5, 6, 8]);
+  const den = pick([4, 5, 6, 8, 10]);
   let a = randInt(1, den - 1);
   let b = randInt(1, den - 1);
   while (a === b) b = randInt(1, den - 1);
@@ -705,172 +839,483 @@ function fractionCompareNormal(): Question {
     correctAnswer: bigger,
     options: shuffle([`${a}/${den}`, `${b}/${den}`, "שווים", "לא ניתן להשוות"]),
     explanation:
-      "באותו מכנה, השבר עם המונה הגדול יותר גדול יותר. תסתכלי על הצורות!",
+      "באותו מכנה, השבר עם המונה הגדול יותר גדול יותר.",
     visual: { kind: "compare-frac", a: [a, den], b: [b, den] },
   };
 }
 
-function genFrac(level: Level): Question {
-  if (level === "easy") {
-    const roll = Math.random();
-    if (roll < 0.6) return fractionVisualEasy();
-    const textOptions = [
-      () =>
-        numericQuestion(
-          "חצי מ-10 זה?",
-          5,
-          3,
-          "חצי זה 1 חלקי 2. 10 : 2 = 5.",
-        ),
-      () =>
-        numericQuestion("רבע מ-8 זה?", 2, 3, "רבע זה 1 חלקי 4. 8 : 4 = 2."),
-      () =>
-        numericQuestion(
-          "שליש מ-9 זה?",
-          3,
-          3,
-          "שליש זה 1 חלקי 3. 9 : 3 = 3.",
-        ),
-    ];
-    return pick(textOptions)();
-  }
-  if (level === "normal") {
-    const roll = Math.random();
-    if (roll < 0.6) return fractionCompareNormal();
-    const opts = [
-      () =>
-        textQuestion(
-          "איזה שבר שווה ל-1/2?",
-          "2/4",
-          ["2/3", "1/3", "3/5"],
-          "1/2 = 2/4 = 3/6 — אלה שברים שווי-ערך.",
-        ),
-      () => numericQuestion("חצי מ-20 זה?", 10, 4, "20 : 2 = 10."),
-      () => numericQuestion("שליש מ-18 זה?", 6, 4, "18 : 3 = 6."),
-    ];
-    return pick(opts)();
-  }
-  const a = randInt(1, 4);
-  const b = randInt(1, 5 - a);
-  const den = randInt(6, 10);
+function fractionEquivalentNormal(): Question {
+  // Find equivalent: 1/2 = ?/4, 1/3 = ?/6, 2/3 = ?/9 etc.
+  const base: Array<{ n: number; d: number; mult: number }> = [
+    { n: 1, d: 2, mult: 2 },
+    { n: 1, d: 2, mult: 3 },
+    { n: 1, d: 2, mult: 4 },
+    { n: 1, d: 3, mult: 2 },
+    { n: 1, d: 3, mult: 3 },
+    { n: 2, d: 3, mult: 2 },
+    { n: 2, d: 3, mult: 3 },
+    { n: 1, d: 4, mult: 2 },
+    { n: 3, d: 4, mult: 2 },
+    { n: 1, d: 5, mult: 2 },
+    { n: 2, d: 5, mult: 2 },
+    { n: 3, d: 5, mult: 2 },
+  ];
+  const b = pick(base);
+  const newN = b.n * b.mult;
+  const newD = b.d * b.mult;
+  const correct = `${newN}/${newD}`;
+  const distractors = [
+    `${b.n + 1}/${newD}`,
+    `${newN}/${newD + 1}`,
+    `${newN - 1}/${newD}`,
+  ];
+  return textQuestion(
+    `איזה שבר שווה ל-${b.n}/${b.d}?`,
+    correct,
+    distractors,
+    `שברים שווי-ערך: כפלנו את המונה והמכנה ב-${b.mult}. ${b.n}/${b.d} = ${correct}.`,
+  );
+}
+
+function fractionToDecimalNormal(): Question {
+  const opts: Array<() => Question> = [
+    () => textQuestion("איזה מספר עשרוני שווה ל-1/2?", "0.5", ["0.2", "0.05", "1.5"], "1/2 = 0.5 (חצי)."),
+    () => textQuestion("איזה מספר עשרוני שווה ל-1/4?", "0.25", ["0.4", "0.2", "0.75"], "1/4 = 0.25 (רבע)."),
+    () => textQuestion("איזה מספר עשרוני שווה ל-3/4?", "0.75", ["0.34", "0.43", "0.4"], "3/4 = 0.75."),
+    () => textQuestion("איזה מספר עשרוני שווה ל-1/10?", "0.1", ["0.01", "1.0", "0.10"], "1/10 = 0.1 (עשירית)."),
+    () => textQuestion("איזה מספר עשרוני שווה ל-7/10?", "0.7", ["0.07", "7.0", "0.17"], "7/10 = 0.7."),
+  ];
+  return pick(opts)();
+}
+
+function fractionAddHard(): Question {
+  const den = randInt(5, 12);
+  const a = randInt(1, den - 2);
+  const b = randInt(1, den - a);
   const sum = a + b;
   return textQuestion(
     `${a}/${den} + ${b}/${den} = ?`,
     `${sum}/${den}`,
-    [`${sum}/${den * 2}`, `${a * b}/${den}`, `${sum + 1}/${den}`],
-    `באותו מכנה — מחברים את המונים: ${a} + ${b} = ${sum}. התוצאה: ${sum}/${den}.`,
-    { kind: "compare-frac", a: [a, den], b: [b, den] },
+    [
+      `${sum}/${den * 2}`,
+      `${a * b}/${den}`,
+      `${sum + 1}/${den}`,
+    ],
+    `באותו מכנה: מחברים מונים. ${a} + ${b} = ${sum}. התוצאה: ${sum}/${den}.`,
   );
 }
 
+function fractionSubHard(): Question {
+  const den = randInt(5, 12);
+  const a = randInt(3, den - 1);
+  const b = randInt(1, a - 1);
+  const diff = a - b;
+  return textQuestion(
+    `${a}/${den} − ${b}/${den} = ?`,
+    `${diff}/${den}`,
+    [
+      `${diff}/${den * 2}`,
+      `${a + b}/${den}`,
+      `${diff + 1}/${den}`,
+    ],
+    `באותו מכנה: מחסרים מונים. ${a} − ${b} = ${diff}. התוצאה: ${diff}/${den}.`,
+  );
+}
+
+function fractionOfNumberHard(): Question {
+  const den = pick([3, 4, 5, 6, 8, 10]);
+  const num = randInt(1, den - 1);
+  const total = den * randInt(3, 8);
+  const result = (total / den) * num;
+  return numericQuestion(
+    `${num}/${den} מתוך ${total} =?`,
+    result,
+    8,
+    `${num}/${den} מתוך ${total}: קודם מחלקים ${total} : ${den} = ${total / den}, ואז כופלים ב-${num} = ${result}.`,
+  );
+}
+
+function genFrac(level: Level): Question {
+  if (level === "easy") {
+    const r = Math.random();
+    if (r < 0.6) return fractionVisualEasy();
+    return fractionFromTextEasy();
+  }
+  if (level === "normal") {
+    const r = Math.random();
+    if (r < 0.4) return fractionCompareNormal();
+    if (r < 0.7) return fractionEquivalentNormal();
+    return fractionToDecimalNormal();
+  }
+  // hard
+  const r = Math.random();
+  if (r < 0.35) return fractionAddHard();
+  if (r < 0.55) return fractionSubHard();
+  return fractionOfNumberHard();
+}
+
+// =====================================================================
+// GEOMETRY — CM1/CM2 calibrated
+// EASY: shape names, sides/vertices, axes of symmetry
+// NORMAL: perimeter, triangle types, parallelograms, axes of symmetry
+// HARD: areas, angle types/sums, complex geometry
+// =====================================================================
+
+const SHAPES_EASY: Array<{
+  s:
+    | "triangle"
+    | "square"
+    | "rectangle"
+    | "circle"
+    | "rhombus"
+    | "parallelogram"
+    | "trapezoid"
+    | "pentagon"
+    | "hexagon";
+  name: string;
+  why: string;
+}> = [
+  { s: "triangle", name: "משולש", why: "3 צלעות ו-3 זוויות — זה משולש." },
+  { s: "square", name: "ריבוע", why: "4 צלעות שוות וכל הזוויות ישרות (90°) — זה ריבוע." },
+  { s: "rectangle", name: "מלבן", why: "4 צלעות, זוגות שווים, כל הזוויות ישרות — זה מלבן." },
+  { s: "circle", name: "עיגול", why: "צורה עגולה ללא צלעות — זה עיגול." },
+  { s: "rhombus", name: "מעוין", why: "4 צלעות שוות, אבל הזוויות לא בהכרח ישרות — זה מעוין." },
+  { s: "parallelogram", name: "מקבילית", why: "4 צלעות, צלעות נגדיות מקבילות ושוות — זו מקבילית." },
+  { s: "trapezoid", name: "טרפז", why: "4 צלעות, רק זוג אחד של צלעות מקבילות — זה טרפז." },
+  { s: "pentagon", name: "מחומש", why: "5 צלעות — זה מחומש." },
+  { s: "hexagon", name: "משושה", why: "6 צלעות — זה משושה." },
+];
+
 function genGeoEasy(): Question {
-  const shapes: Array<{
-    s: "triangle" | "square" | "rectangle" | "circle";
+  const form = randInt(0, 4);
+  if (form === 0) {
+    // Identify shape
+    const subset = shuffle([...SHAPES_EASY]).slice(0, 5);
+    const picked = pick(subset);
+    const distractors = subset
+      .filter((s) => s.name !== picked.name)
+      .map((s) => s.name)
+      .slice(0, 3);
+    return {
+      question: "איך נקראת הצורה הזאת?",
+      correctAnswer: picked.name,
+      options: shuffle([picked.name, ...distractors]),
+      explanation: picked.why,
+      visual: { kind: "shape", shape: picked.s },
+    };
+  }
+  if (form === 1) {
+    // Number of sides
+    const shapes = [
+      { name: "משולש", sides: 3 },
+      { name: "ריבוע", sides: 4 },
+      { name: "מלבן", sides: 4 },
+      { name: "מעוין", sides: 4 },
+      { name: "מחומש", sides: 5 },
+      { name: "משושה", sides: 6 },
+      { name: "מתומן", sides: 8 },
+    ];
+    const p = pick(shapes);
+    return numericQuestion(
+      `כמה צלעות יש ל${p.name}?`,
+      p.sides,
+      3,
+      `ב${p.name} יש ${p.sides} צלעות.`,
+    );
+  }
+  if (form === 2) {
+    // Number of vertices (same as sides for polygons)
+    const shapes = [
+      { name: "משולש", v: 3 },
+      { name: "ריבוע", v: 4 },
+      { name: "מחומש", v: 5 },
+      { name: "משושה", v: 6 },
+    ];
+    const p = pick(shapes);
+    return numericQuestion(
+      `כמה קודקודים יש ל${p.name}?`,
+      p.v,
+      3,
+      `ב${p.name} יש ${p.v} קודקודים — בדיוק כמספר הצלעות.`,
+    );
+  }
+  if (form === 3) {
+    // Faces of 3D shapes (basic)
+    const opts: Array<() => Question> = [
+      () =>
+        textQuestion(
+          "איזו צורה תלת-ממדית יש לה 6 פאות שוות?",
+          "קוביה",
+          ["כדור", "פירמידה", "גליל"],
+          "לקוביה יש 6 פאות, כל פאה היא ריבוע.",
+        ),
+      () =>
+        textQuestion(
+          "איזו צורה תלת-ממדית יש לה רק עיגול אחד ופני שטח עקומים?",
+          "כדור",
+          ["קוביה", "פירמידה", "תיבה"],
+          "כדור הוא צורה תלת-ממדית עם משטח עקום אחד.",
+        ),
+      () =>
+        textQuestion(
+          "איזו צורה תלת-ממדית יש לה 2 עיגולים בקצוות?",
+          "גליל (צילינדר)",
+          ["כדור", "קוביה", "פירמידה"],
+          "גליל יש לו 2 עיגולים זהים בקצוות וצדדים מעוגלים.",
+        ),
+    ];
+    return pick(opts)();
+  }
+  // Symmetry axes
+  const symData: Array<{
+    shape: "square" | "rectangle" | "equilateral" | "isosceles" | "circle" | "rhombus";
     name: string;
+    axes: number;
     why: string;
   }> = [
-    {
-      s: "triangle",
-      name: "משולש",
-      why: "3 צלעות ו-3 זוויות — זה משולש.",
-    },
-    {
-      s: "square",
-      name: "ריבוע",
-      why: "4 צלעות שוות וכל הזוויות ישרות — זה ריבוע.",
-    },
-    {
-      s: "rectangle",
-      name: "מלבן",
-      why: "4 צלעות, זוגות של צלעות שוות, כל הזוויות ישרות — זה מלבן.",
-    },
-    {
-      s: "circle",
-      name: "עיגול",
-      why: "צורה עגולה בלי צלעות — זה עיגול.",
-    },
+    { shape: "square", name: "ריבוע", axes: 4, why: "לריבוע יש 4 צירי סימטריה." },
+    { shape: "rectangle", name: "מלבן", axes: 2, why: "למלבן יש 2 צירי סימטריה (אופקי ואנכי באמצע)." },
+    { shape: "equilateral", name: "משולש שווה-צלעות", axes: 3, why: "למשולש שווה-צלעות יש 3 צירי סימטריה." },
+    { shape: "isosceles", name: "משולש שווה-שוקיים", axes: 1, why: "למשולש שווה-שוקיים יש ציר סימטריה אחד." },
   ];
-  const picked = pick(shapes);
-  const distractors = shapes
-    .filter((s) => s.name !== picked.name)
-    .map((s) => s.name);
+  const s = pick(symData);
   return {
-    question: "איך נקראת הצורה הזאת?",
-    correctAnswer: picked.name,
-    options: shuffle([picked.name, ...shuffle(distractors).slice(0, 3)]),
-    explanation: picked.why,
-    visual: { kind: "shape", shape: picked.s },
+    question: `כמה צירי סימטריה יש ל${s.name}?`,
+    correctAnswer: String(s.axes),
+    options: shuffle(["0", "1", "2", "3", "4"].slice(0, 4)),
+    explanation: s.why,
+    visual: { kind: "symmetry-axes", shape: s.shape, axes: s.axes },
   };
 }
 
 function genGeoNormal(): Question {
-  const types: Array<{
-    t: "equilateral" | "isosceles" | "scalene";
-    name: string;
-    why: string;
-  }> = [
-    {
-      t: "equilateral",
-      name: "שווה-צלעות",
-      why: "כל 3 הצלעות באותו אורך (שימי לב לסימני הזהוּת).",
-    },
-    {
-      t: "isosceles",
-      name: "שווה-שוקיים",
-      why: "שתי צלעות שוות ואחת שונה — זה שווה-שוקיים.",
-    },
-    {
-      t: "scalene",
-      name: "שונה-צלעות",
-      why: "כל שלוש הצלעות באורך שונה.",
-    },
-  ];
-  const picked = pick(types);
-  const distractors = types
-    .filter((x) => x.name !== picked.name)
-    .map((x) => x.name);
-  return {
-    question: "איזה סוג משולש זה?",
-    correctAnswer: picked.name,
-    options: shuffle([picked.name, ...distractors, "ישר-זווית"]),
-    explanation: picked.why,
-    visual: { kind: "triangle-type", type: picked.t },
-  };
+  const form = randInt(0, 5);
+  if (form === 0) {
+    // Triangle types
+    const types: Array<{
+      t: "equilateral" | "isosceles" | "scalene" | "right";
+      name: string;
+      why: string;
+    }> = [
+      { t: "equilateral", name: "שווה-צלעות", why: "כל 3 הצלעות באותו אורך." },
+      { t: "isosceles", name: "שווה-שוקיים", why: "שתי צלעות שוות ואחת שונה." },
+      { t: "scalene", name: "שונה-צלעות", why: "כל שלוש הצלעות באורך שונה." },
+      { t: "right", name: "ישר-זווית", why: "אחת הזוויות שלו היא 90° (זווית ישרה)." },
+    ];
+    const p = pick(types);
+    const distractors = types.filter((x) => x.name !== p.name).map((x) => x.name);
+    return {
+      question: "איזה סוג משולש זה?",
+      correctAnswer: p.name,
+      options: shuffle([p.name, ...distractors]),
+      explanation: p.why,
+      visual: { kind: "triangle-type", type: p.t },
+    };
+  }
+  if (form === 1) {
+    // Perimeter of rectangle
+    const w = randInt(3, 12);
+    const h = randInt(3, 12);
+    const peri = 2 * (w + h);
+    return {
+      question: `מה ההיקף של מלבן עם צלעות ${w} ס״מ ו-${h} ס״מ?`,
+      correctAnswer: `${peri} ס״מ`,
+      options: shuffle([
+        `${peri} ס״מ`,
+        `${w * h} ס״מ`,
+        `${w + h} ס״מ`,
+        `${peri + 2} ס״מ`,
+      ]),
+      explanation: `היקף מלבן = 2 × (אורך + רוחב) = 2 × (${w} + ${h}) = ${peri} ס״מ.`,
+      visual: { kind: "perimeter-rect", w, h, unit: "ס״מ" },
+    };
+  }
+  if (form === 2) {
+    // Perimeter of square
+    const s = randInt(3, 15);
+    const peri = 4 * s;
+    return numericQuestion(
+      `מה ההיקף של ריבוע עם צלע ${s} ס״מ? (במ״מ?, לא — בס״מ)`,
+      peri,
+      8,
+      `היקף ריבוע = 4 × צלע = 4 × ${s} = ${peri} ס״מ.`,
+    );
+  }
+  if (form === 3) {
+    // Triangle perimeter
+    const a = randInt(4, 12);
+    const b = randInt(4, 12);
+    const c = randInt(4, 12);
+    const peri = a + b + c;
+    return numericQuestion(
+      `מה ההיקף של משולש עם צלעות ${a}, ${b}, ${c} ס״מ?`,
+      peri,
+      6,
+      `היקף משולש = סכום הצלעות = ${a} + ${b} + ${c} = ${peri} ס״מ.`,
+    );
+  }
+  if (form === 4) {
+    // Quadrilateral types
+    const opts: Array<() => Question> = [
+      () =>
+        textQuestion(
+          "איזו צורה יש לה 4 צלעות שוות וכל הזוויות ישרות?",
+          "ריבוע",
+          ["מלבן", "מעוין", "מקבילית"],
+          "ריבוע: 4 צלעות שוות + כל הזוויות 90°.",
+        ),
+      () =>
+        textQuestion(
+          "איזו צורה יש לה 4 צלעות שוות אבל הזוויות לא ישרות?",
+          "מעוין",
+          ["ריבוע", "מלבן", "טרפז"],
+          "מעוין: 4 צלעות שוות, אבל הזוויות אינן 90° (אחרת זה ריבוע).",
+        ),
+      () =>
+        textQuestion(
+          "איזו צורה יש לה רק זוג אחד של צלעות מקבילות?",
+          "טרפז",
+          ["מלבן", "מעוין", "מקבילית"],
+          "בטרפז יש רק זוג אחד של צלעות מקבילות.",
+        ),
+      () =>
+        textQuestion(
+          "איזו צורה יש לה זוגות של צלעות מקבילות אבל אינה ריבוע?",
+          "מקבילית",
+          ["טרפז", "משולש", "מחומש"],
+          "במקבילית 2 זוגות של צלעות מקבילות. ריבוע הוא מקבילית מיוחדת.",
+        ),
+    ];
+    return pick(opts)();
+  }
+  // Diameter / radius
+  const r = randInt(3, 12);
+  return numericQuestion(
+    `אם הרדיוס של עיגול הוא ${r} ס״מ, מה אורך הקוטר?`,
+    r * 2,
+    5,
+    `קוטר = 2 × רדיוס. ${r} × 2 = ${r * 2} ס״מ.`,
+  );
 }
 
 function genGeoHard(): Question {
-  const types: Array<{
-    t: "acute" | "right" | "obtuse";
-    name: string;
-    why: string;
-  }> = [
-    {
-      t: "acute",
-      name: "חדה",
-      why: "הזווית קטנה מ-90° — זו זווית חדה.",
-    },
-    {
-      t: "right",
-      name: "ישרה",
-      why: "הזווית היא בדיוק 90° (שימי לב לריבוע הקטן) — זווית ישרה.",
-    },
-    {
-      t: "obtuse",
-      name: "קהה",
-      why: "הזווית גדולה מ-90° וקטנה מ-180° — זווית קהה.",
-    },
-  ];
-  const picked = pick(types);
-  const distractors = types
-    .filter((x) => x.name !== picked.name)
-    .map((x) => x.name);
-  return {
-    question: "איזה סוג זווית זו?",
-    correctAnswer: picked.name,
-    options: shuffle([picked.name, ...distractors, "שטוחה"]),
-    explanation: picked.why,
-    visual: { kind: "angle-type", type: picked.t },
-  };
+  const form = randInt(0, 6);
+  if (form === 0) {
+    // Angle types
+    const types: Array<{
+      t: "acute" | "right" | "obtuse" | "straight";
+      name: string;
+      why: string;
+    }> = [
+      { t: "acute", name: "חדה", why: "הזווית קטנה מ-90°." },
+      { t: "right", name: "ישרה", why: "הזווית בדיוק 90°." },
+      { t: "obtuse", name: "קהה", why: "הזווית בין 90° ל-180°." },
+      { t: "straight", name: "שטוחה", why: "הזווית בדיוק 180°." },
+    ];
+    const p = pick(types.filter((x) => x.t !== "straight"));
+    const distractors = types.filter((x) => x.name !== p.name).map((x) => x.name);
+    return {
+      question: "איזה סוג זווית זו?",
+      correctAnswer: p.name,
+      options: shuffle([p.name, ...distractors.slice(0, 3)]),
+      explanation: p.why,
+      visual: { kind: "angle-type", type: p.t },
+    };
+  }
+  if (form === 1) {
+    // Area of rectangle
+    const w = randInt(4, 15);
+    const h = randInt(3, 12);
+    const area = w * h;
+    return {
+      question: `מה השטח של מלבן עם צלעות ${w} ס״מ ו-${h} ס״מ?`,
+      correctAnswer: `${area} סמ״ר`,
+      options: shuffle([
+        `${area} סמ״ר`,
+        `${2 * (w + h)} סמ״ר`,
+        `${w + h} סמ״ר`,
+        `${area + w} סמ״ר`,
+      ]),
+      explanation: `שטח מלבן = אורך × רוחב = ${w} × ${h} = ${area} סמ״ר.`,
+      visual: { kind: "rect-area", w, h, unit: "ס״מ" },
+    };
+  }
+  if (form === 2) {
+    // Area of square
+    const s = randInt(3, 14);
+    const area = s * s;
+    return numericQuestion(
+      `מה השטח של ריבוע עם צלע ${s} ס״מ? (בסמ״ר)`,
+      area,
+      30,
+      `שטח ריבוע = צלע × צלע = ${s} × ${s} = ${area} סמ״ר.`,
+    );
+  }
+  if (form === 3) {
+    // Sum of angles in a triangle
+    const a = randInt(20, 70);
+    const b = randInt(30, 80);
+    const c = 180 - a - b;
+    if (c < 10 || c > 130) {
+      // fall back
+      return numericQuestion(
+        `במשולש זוויות 60° ו-70°. מה הזווית השלישית?`,
+        50,
+        15,
+        `סכום זוויות במשולש = 180°. 180 − 60 − 70 = 50°.`,
+      );
+    }
+    return numericQuestion(
+      `במשולש זוויות ${a}° ו-${b}°. מה הזווית השלישית? (במעלות)`,
+      c,
+      15,
+      `סכום זוויות במשולש = 180°. ${180} − ${a} − ${b} = ${c}°.`,
+    );
+  }
+  if (form === 4) {
+    // Find missing side from perimeter
+    const w = randInt(5, 15);
+    const peri = randInt(40, 80);
+    const h = (peri - 2 * w) / 2;
+    if (h < 2 || !Number.isInteger(h)) {
+      // fallback safe
+      return numericQuestion(
+        `היקף מלבן הוא 30 ס״מ. אם אורכו 9 ס״מ, מה רוחבו?`,
+        6,
+        5,
+        `2 × (אורך + רוחב) = 30, אורך + רוחב = 15, רוחב = 15 − 9 = 6 ס״מ.`,
+      );
+    }
+    return numericQuestion(
+      `היקף מלבן הוא ${peri} ס״מ. אם אורכו ${w} ס״מ, מה רוחבו?`,
+      h,
+      6,
+      `2 × (${w} + רוחב) = ${peri}. ${w} + רוחב = ${peri / 2}. רוחב = ${peri / 2} − ${w} = ${h} ס״מ.`,
+    );
+  }
+  if (form === 5) {
+    // Compound area
+    const w1 = randInt(4, 8);
+    const h1 = randInt(3, 6);
+    const w2 = randInt(2, 5);
+    const h2 = randInt(2, 4);
+    const total = w1 * h1 + w2 * h2;
+    return numericQuestion(
+      `צורה מורכבת משני מלבנים: אחד ${w1}×${h1} ס״מ, אחר ${w2}×${h2} ס״מ. מה השטח הכולל?`,
+      total,
+      20,
+      `שטח 1: ${w1} × ${h1} = ${w1 * h1}. שטח 2: ${w2} × ${h2} = ${w2 * h2}. סה״כ: ${total} סמ״ר.`,
+    );
+  }
+  // Volume of a cube
+  const s = randInt(2, 8);
+  const vol = s * s * s;
+  return numericQuestion(
+    `מה הנפח של קוביה עם צלע ${s} ס״מ? (בסמ״ק)`,
+    vol,
+    30,
+    `נפח קוביה = צלע × צלע × צלע = ${s} × ${s} × ${s} = ${vol} סמ״ק.`,
+  );
 }
 
 function genGeo(level: Level): Question {
@@ -879,103 +1324,135 @@ function genGeo(level: Level): Question {
   return genGeoHard();
 }
 
+// =====================================================================
+// MONEY/UNITS
+// =====================================================================
+
 function genMoneyEasy(): Question {
-  const form = randInt(0, 3);
+  const form = randInt(0, 4);
   if (form === 0) {
-    const coins10 = randInt(1, 6);
-    const coins5 = randInt(0, 5);
-    const sum = coins10 * 10 + coins5 * 5;
-    return numericQuestion(
-      `${coins10} מטבעות של 10₪ ו-${coins5} מטבעות של 5₪ — כמה יש בסך הכל?`,
-      sum,
-      9,
-      `${coins10} × 10 + ${coins5} × 5 = ${sum}₪.`,
-    );
-  }
-  if (form === 1) {
     const items = randInt(3, 7);
-    const price = randInt(2, 9);
+    const price = randInt(4, 9);
     const total = items * price;
     return numericQuestion(
-      `קנית ${items} מדבקות, כל אחת עולה ${price}₪. כמה שילמת?`,
+      `קנית ${items} מדבקות, כל אחת ${price}₪. כמה שילמת?`,
       total,
       8,
       `${items} × ${price} = ${total}₪.`,
     );
   }
-  if (form === 2) {
-    const have = randInt(30, 70);
-    const spent = randInt(10, have - 5);
+  if (form === 1) {
+    const have = randInt(40, 90);
+    const spent = randInt(15, have - 5);
     const left = have - spent;
     return numericQuestion(
       `היו לך ${have}₪. הוצאת ${spent}₪. כמה נשאר?`,
       left,
-      8,
+      10,
       `${have} − ${spent} = ${left}₪.`,
     );
   }
-  const saved = randInt(20, 45);
-  const gift = randInt(10, 30);
-  const total = saved + gift;
+  if (form === 2) {
+    // Unit conversion: m to cm
+    const m = randInt(2, 9);
+    return numericQuestion(
+      `${m} מטרים = ? ס״מ`,
+      m * 100,
+      80,
+      `1 מטר = 100 ס״מ. ${m} × 100 = ${m * 100} ס״מ.`,
+    );
+  }
+  if (form === 3) {
+    // kg to grams
+    const k = randInt(2, 8);
+    return numericQuestion(
+      `${k} ק״ג = ? גרם`,
+      k * 1000,
+      800,
+      `1 ק״ג = 1,000 גרם. ${k} × 1,000 = ${k * 1000} גרם.`,
+    );
+  }
+  // Time: minutes in hours
+  const h = randInt(2, 6);
   return numericQuestion(
-    `חסכת ${saved}₪. סבתא נתנה לך עוד ${gift}₪. כמה יש לך?`,
-    total,
-    8,
-    `${saved} + ${gift} = ${total}₪.`,
+    `${h} שעות = ? דקות`,
+    h * 60,
+    50,
+    `1 שעה = 60 דקות. ${h} × 60 = ${h * 60} דקות.`,
   );
 }
 
 function genMoneyNormal(): Question {
-  const form = randInt(0, 3);
+  const form = randInt(0, 5);
   if (form === 0) {
-    const price = randInt(23, 89);
+    const price = randInt(34, 89);
     const change = 100 - price;
     return numericQuestion(
       `שילמת 100₪ עבור מוצר שעלה ${price}₪. כמה עודף?`,
       change,
-      12,
+      15,
       `100 − ${price} = ${change}₪ עודף.`,
     );
   }
   if (form === 1) {
-    const p1 = randInt(15, 45);
-    const p2 = randInt(15, 45);
-    const total = p1 + p2;
-    return numericQuestion(
-      `קנית חולצה ב-${p1}₪ ומכנסיים ב-${p2}₪. כמה שילמת בסך הכל?`,
-      total,
-      15,
-      `${p1} + ${p2} = ${total}₪.`,
-    );
-  }
-  if (form === 2) {
-    const need = randInt(80, 150);
-    const have = randInt(20, need - 20);
+    const need = randInt(120, 250);
+    const have = randInt(40, need - 30);
     const still = need - have;
     return numericQuestion(
-      `צעצוע עולה ${need}₪. חסכת ${have}₪. כמה עוד צריך לחסוך?`,
+      `צעצוע עולה ${need}₪. חסכת ${have}₪. כמה עוד צריך?`,
       still,
-      15,
+      30,
       `${need} − ${have} = ${still}₪.`,
     );
   }
-  const items = randInt(3, 6);
-  const price = pick([7, 8, 9, 12, 15]);
+  if (form === 2) {
+    // km to m
+    const k = randInt(2, 9);
+    return numericQuestion(
+      `${k} ק״מ = ? מטרים`,
+      k * 1000,
+      500,
+      `1 ק״מ = 1,000 מטר. ${k} × 1,000 = ${k * 1000} מטרים.`,
+    );
+  }
+  if (form === 3) {
+    // hours and minutes
+    const h = randInt(1, 4);
+    const m = randInt(15, 55);
+    return numericQuestion(
+      `${h} שעות ו-${m} דקות = ? דקות`,
+      h * 60 + m,
+      40,
+      `${h} שעות = ${h * 60} דקות. ${h * 60} + ${m} = ${h * 60 + m} דקות.`,
+    );
+  }
+  if (form === 4) {
+    // L to mL
+    const l = randInt(2, 7);
+    return numericQuestion(
+      `${l} ליטר = ? מ״ל`,
+      l * 1000,
+      500,
+      `1 ליטר = 1,000 מ״ל. ${l} × 1,000 = ${l * 1000} מ״ל.`,
+    );
+  }
+  const items = randInt(4, 8);
+  const price = pick([12, 15, 18, 25, 35]);
   const total = items * price;
   return numericQuestion(
-    `${items} חברים קנו כל אחד בלון ב-${price}₪. כמה שילמו בסך הכל?`,
+    `${items} ילדים קנו כרטיס סרט ב-${price}₪ כל אחד. כמה שילמו בסך הכל?`,
     total,
-    15,
+    30,
     `${items} × ${price} = ${total}₪.`,
   );
 }
 
 function genMoneyHard(): Question {
-  const form = randInt(0, 3);
+  const form = randInt(0, 5);
   if (form === 0) {
     const p1 = randInt(45, 160);
     const p2 = randInt(35, 120);
-    const paid = Math.max(p1 + p2 + 20, 200);
+    const paid = Math.max(p1 + p2 + 50, 250);
     const change = paid - (p1 + p2);
     return numericQuestion(
       `קנית ספר ב-${p1}₪ ומחברת ב-${p2}₪. שילמת ${paid}₪. כמה עודף?`,
@@ -985,48 +1462,62 @@ function genMoneyHard(): Question {
     );
   }
   if (form === 1) {
-    const price = randInt(80, 200);
-    const percent = pick([10, 20, 25]);
+    const price = randInt(80, 250);
+    const percent = pick([10, 20, 25, 50]);
     const discount = (price * percent) / 100;
     const final = price - discount;
     return numericQuestion(
-      `מוצר עלה ${price}₪ וקיבל הנחה של ${percent}%. כמה עולה עכשיו?`,
+      `מוצר עלה ${price}₪ והוצעה הנחה של ${percent}%. כמה עולה אחרי ההנחה?`,
       final,
-      20,
+      30,
       `${percent}% מתוך ${price} = ${discount}. ${price} − ${discount} = ${final}₪.`,
     );
   }
   if (form === 2) {
-    const kids = randInt(3, 6);
-    const total = randInt(60, 180);
-    const roundedTotal = Math.floor(total / kids) * kids;
-    const per = roundedTotal / kids;
+    const safeKids = pick([4, 6, 8, 12]);
+    const safeTotal = safeKids * pick([15, 18, 25, 30]);
     return numericQuestion(
-      `${kids} חברים חילקו ${roundedTotal}₪ בחלוקה שווה. כמה קיבל כל אחד?`,
-      per,
-      8,
-      `${roundedTotal} : ${kids} = ${per}₪.`,
+      `${safeKids} חברים חילקו ${safeTotal}₪ בחלוקה שווה. כמה קיבל כל אחד?`,
+      safeTotal / safeKids,
+      15,
+      `${safeTotal} : ${safeKids} = ${safeTotal / safeKids}₪.`,
     );
   }
-  const a = randInt(30, 90);
-  const b = randInt(30, 90);
-  const c = randInt(30, 90);
-  const paid = 250;
-  const change = paid - (a + b + c);
-  if (change < 0) {
-    const safe = paid - 100;
+  if (form === 3) {
+    // Decimal price
+    const price = +(randInt(150, 350) / 10).toFixed(1);
+    const items = randInt(3, 6);
+    const total = +(price * items).toFixed(1);
     return numericQuestion(
-      `קנית ספרים ב-${a}₪, ${b}₪ ו-${safe}₪. שילמת ${paid}₪. כמה עודף?`,
-      paid - (a + b + safe),
-      30,
-      `${a} + ${b} + ${safe} = ${a + b + safe}. ${paid} − ${a + b + safe} = ${paid - (a + b + safe)}₪.`,
+      `${items} קופסאות חלב ב-${price}₪ כל אחת. כמה שילמת?`,
+      total,
+      10,
+      `${items} × ${price} = ${total}₪.`,
     );
   }
+  if (form === 4) {
+    // Time conversion: seconds in minutes
+    const h = randInt(1, 3);
+    return numericQuestion(
+      `${h} שעות = ? שניות`,
+      h * 3600,
+      1500,
+      `1 שעה = 3,600 שניות. ${h} × 3,600 = ${h * 3600} שניות.`,
+    );
+  }
+  // Average price (chosen sets to ensure integer averages)
+  const triples: Array<[number, number, number]> = [
+    [30, 45, 60],
+    [25, 40, 55],
+    [20, 35, 50],
+    [40, 50, 60],
+  ];
+  const [aSafe, bSafe, cSafe] = pick(triples);
   return numericQuestion(
-    `קנית 3 ספרים ב-${a}₪, ${b}₪ ו-${c}₪. שילמת ${paid}₪. כמה עודף?`,
-    change,
-    30,
-    `${a} + ${b} + ${c} = ${a + b + c}. ${paid} − ${a + b + c} = ${change}₪.`,
+    `המחיר של 3 חולצות הוא ${aSafe}₪, ${bSafe}₪ ו-${cSafe}₪. מה המחיר הממוצע?`,
+    Math.round((aSafe + bSafe + cSafe) / 3),
+    10,
+    `ממוצע = (${aSafe} + ${bSafe} + ${cSafe}) : 3 = ${aSafe + bSafe + cSafe} : 3 = ${(aSafe + bSafe + cSafe) / 3}₪.`,
   );
 }
 
@@ -1036,113 +1527,66 @@ function genMoney(level: Level): Question {
   return genMoneyHard();
 }
 
-const NAMES = ["דני", "מיה", "נועה", "יובל", "רוני", "אלה", "יוסי", "ליה", "שוש"];
+// =====================================================================
+// WORD PROBLEMS
+// =====================================================================
+
+const NAMES = ["דני", "מיה", "נועה", "יובל", "רוני", "אלה", "יוסי", "ליה", "שוש", "תמר"];
 
 function genWordEasy(): Question {
   const templates: Array<() => Question> = [
     () => {
       const name = pick(NAMES);
-      const a = randInt(4, 9);
-      const b = randInt(2, 7);
+      const a = randInt(8, 25);
+      const b = randInt(5, 18);
       return numericQuestion(
-        `🐒 בגן החיות ${name} ראתה ${a} קופים ו-${b} זברות. כמה חיות ראתה בסך הכל?`,
+        `🐒 בגן החיות ${name} ראתה ${a} קופים ו-${b} זברות. כמה חיות בסך הכל?`,
         a + b,
-        5,
+        10,
         `${a} + ${b} = ${a + b}. "בסך הכל" → חיבור.`,
       );
     },
     () => {
-      const a = randInt(5, 12);
-      const b = randInt(3, 8);
-      return numericQuestion(
-        `🎈 בחגיגה של יום העצמאות היו ${a} בלונים כחולים ו-${b} לבנים. כמה בלונים היו?`,
-        a + b,
-        6,
-        `${a} + ${b} = ${a + b}. "היו... ועוד" → חיבור.`,
-      );
-    },
-    () => {
       const name = pick(NAMES);
-      const a = randInt(8, 18);
-      const b = randInt(3, 7);
+      const a = randInt(15, 40);
+      const b = randInt(5, 12);
       return numericQuestion(
-        `🐚 בחוף ${name} אספה ${a} קונכיות. ${b} מהן נשברו בדרך הביתה. כמה נשארו שלמות?`,
+        `🐚 ${name} אספה ${a} קונכיות. ${b} מהן נשברו. כמה נשארו שלמות?`,
         a - b,
-        5,
+        10,
         `${a} − ${b} = ${a - b}. "נשברו" → חיסור.`,
       );
     },
     () => {
-      const a = randInt(3, 6);
-      const b = randInt(3, 6);
+      const a = randInt(4, 8);
+      const b = randInt(4, 9);
       return numericQuestion(
-        `🍕 בפיצרייה ${a} שולחנות, ובכל שולחן יושבים ${b} ילדים. כמה ילדים יש בפיצרייה?`,
+        `🍕 בפיצרייה ${a} שולחנות, ובכל שולחן ${b} ילדים. כמה ילדים בפיצרייה?`,
         a * b,
-        6,
+        10,
         `${a} × ${b} = ${a * b}. "בכל שולחן" → כפל.`,
       );
     },
     () => {
-      const name = pick(NAMES);
-      const a = randInt(10, 20);
-      const b = randInt(4, 9);
+      const total = pick([24, 30, 36, 40, 48]);
+      const per = pick([4, 5, 6, 8]);
+      const groups = total / per;
       return numericQuestion(
-        `🍪 ${name} אפתה ${a} עוגיות לחברים. ${b} נאכלו מיד. כמה נשארו?`,
-        a - b,
+        `🎈 חילקו ${total} בלונים ל-${per} בלונים בכל קבוצה. כמה קבוצות יש?`,
+        groups,
         5,
-        `${a} − ${b} = ${a - b}. "נאכלו" → חיסור.`,
+        `${total} : ${per} = ${groups}. "בכל קבוצה" → חילוק.`,
       );
     },
     () => {
       const name = pick(NAMES);
-      const a = randInt(6, 15);
-      const b = randInt(4, 10);
+      const a = randInt(20, 50);
+      const b = randInt(10, 25);
       return numericQuestion(
-        `🚌 באוטובוס של ${name} היו ${a} נוסעים. בתחנה נוספו עוד ${b}. כמה נוסעים באוטובוס?`,
+        `🎒 ${name} קנתה מחברת ב-${a}₪ ועיפרון ב-${b}₪. כמה שילמה בסך הכל?`,
         a + b,
-        5,
-        `${a} + ${b} = ${a + b}. "נוספו" → חיבור.`,
-      );
-    },
-    () => {
-      const a = randInt(3, 5);
-      const b = randInt(4, 8);
-      return numericQuestion(
-        `🎒 בחנות יש ${a} קופסאות עפרונות, בכל קופסה ${b} עפרונות. כמה עפרונות בחנות?`,
-        a * b,
-        6,
-        `${a} × ${b} = ${a * b}. קבוצות שוות → כפל.`,
-      );
-    },
-    () => {
-      const name = pick(NAMES);
-      const a = randInt(12, 20);
-      const b = randInt(3, 8);
-      return numericQuestion(
-        `🐟 באקווריום של ${name} היו ${a} דגים. היא נתנה ${b} לחברה שלה. כמה נשארו?`,
-        a - b,
-        5,
-        `${a} − ${b} = ${a - b}. "נתנה" → חיסור.`,
-      );
-    },
-    () => {
-      const a = randInt(6, 14);
-      const b = randInt(3, 10);
-      return numericQuestion(
-        `🦋 בגינה ראיתי ${a} פרפרים ו-${b} דבורים. כמה חרקים ראיתי?`,
-        a + b,
-        6,
-        `${a} + ${b} = ${a + b}. "כמה... ועוד" → חיבור.`,
-      );
-    },
-    () => {
-      const a = randInt(2, 5);
-      const b = randInt(5, 10);
-      return numericQuestion(
-        `🎨 ${pick(NAMES)} ציירה ${a} שורות פרחים. בכל שורה ${b} פרחים. כמה פרחים ציירה?`,
-        a * b,
-        6,
-        `${a} × ${b} = ${a * b}. שורות שוות → כפל.`,
+        10,
+        `${a} + ${b} = ${a + b}₪.`,
       );
     },
   ];
@@ -1153,89 +1597,74 @@ function genWordNormal(): Question {
   const templates: Array<() => Question> = [
     () => {
       const name = pick(NAMES);
-      const total = randInt(22, 32);
-      const girls = randInt(10, total - 10);
+      const total = randInt(28, 36);
+      const girls = randInt(12, total - 12);
       const boys = total - girls;
-      const gone = randInt(2, 5);
-      const left = boys - gone;
+      const gone = randInt(3, 6);
       return numericQuestion(
-        `🏫 בכיתה ג' של ${name} יש ${total} תלמידים, ${girls} בנות. אחרי ש-${gone} בנים יצאו לחצר, כמה בנים נשארו?`,
-        left,
-        4,
-        `בנים: ${total} − ${girls} = ${boys}. נשארו: ${boys} − ${gone} = ${left}.`,
+        `🏫 בכיתה של ${name} ${total} תלמידים, ${girls} בנות. אחרי ש-${gone} בנים יצאו לחצר, כמה בנים נשארו בכיתה?`,
+        boys - gone,
+        5,
+        `בנים: ${total} − ${girls} = ${boys}. נשארו: ${boys} − ${gone} = ${boys - gone}.`,
       );
     },
     () => {
-      const bags = randInt(4, 8);
-      const perBag = randInt(5, 9);
-      const eaten = randInt(4, 10);
+      const bags = randInt(5, 9);
+      const perBag = randInt(8, 12);
+      const eaten = randInt(8, 20);
       const left = bags * perBag - eaten;
       const name = pick(NAMES);
       return numericQuestion(
-        `🍬 ${name} קנתה ${bags} שקיות סוכריות, ${perBag} סוכריות בכל אחת. אכלה ${eaten}. כמה נשארו?`,
+        `🍬 ${name} קנתה ${bags} שקיות סוכריות, ${perBag} בכל אחת. אכלה ${eaten}. כמה נשארו?`,
         left,
-        6,
+        10,
         `סה״כ: ${bags} × ${perBag} = ${bags * perBag}. נשארו: ${bags * perBag} − ${eaten} = ${left}.`,
       );
     },
     () => {
-      const pizzas = randInt(2, 4);
-      const eaten = randInt(6, 15);
+      const pizzas = randInt(3, 5);
+      const eaten = randInt(10, 20);
       const left = pizzas * 8 - eaten;
       return numericQuestion(
-        `🍕 אבא הזמין ${pizzas} פיצות. כל פיצה מחולקת ל-8 פרוסות. המשפחה אכלה ${eaten} פרוסות. כמה נשארו?`,
+        `🍕 הזמינו ${pizzas} פיצות. כל פיצה 8 פרוסות. אכלו ${eaten} פרוסות. כמה נשארו?`,
         left,
-        5,
-        `סה״כ פרוסות: ${pizzas} × 8 = ${pizzas * 8}. נשארו: ${pizzas * 8} − ${eaten} = ${left}.`,
+        8,
+        `סה״כ: ${pizzas} × 8 = ${pizzas * 8}. נשארו: ${pizzas * 8} − ${eaten} = ${left}.`,
       );
     },
     () => {
-      const saving = randInt(40, 80);
-      const gift = randInt(20, 50);
-      const book = randInt(15, 40);
       const name = pick(NAMES);
+      const saving = randInt(60, 120);
+      const gift = randInt(30, 70);
+      const book = randInt(40, 80);
       return numericQuestion(
-        `💰 ל-${name} היו ${saving}₪ בחסכון. סבתא נתנה לה עוד ${gift}₪, ואז ${name} קנתה ספר ב-${book}₪. כמה כסף נשאר לה?`,
+        `💰 ל-${name} היו ${saving}₪. סבתא נתנה ${gift}₪ נוספים, ואז ${name} קנתה ספר ב-${book}₪. כמה נשאר לה?`,
         saving + gift - book,
-        8,
+        15,
         `${saving} + ${gift} − ${book} = ${saving + gift - book}₪.`,
       );
     },
     () => {
-      const name = pick(NAMES);
-      const fish = randInt(12, 20);
-      const per = randInt(2, 3);
-      const returned = randInt(5, 10);
-      const kept = fish * per - returned;
+      const trees = pick([6, 8, 12]);
+      const apples = pick([8, 12, 15]);
+      const total = trees * apples;
       return numericQuestion(
-        `🎣 בדיג בכנרת ${name} וחברים תפסו ${fish} דגים, כל דג שוקל בערך ${per} ק"ג. הם החזירו למים ${returned} ק"ג. כמה ק"ג הם לקחו הביתה?`,
-        kept,
-        8,
-        `משקל כולל: ${fish} × ${per} = ${fish * per} ק״ג. לקחו: ${fish * per} − ${returned} = ${kept} ק״ג.`,
-      );
-    },
-    () => {
-      const rows = randInt(4, 7);
-      const per = randInt(4, 8);
-      const empty = randInt(3, 8);
-      const filled = rows * per - empty;
-      return numericQuestion(
-        `🎪 באולם יש ${rows} שורות של ${per} כיסאות. בהצגה ${empty} כיסאות נשארו ריקים. כמה ילדים ישבו?`,
-        filled,
-        8,
-        `כיסאות סה״כ: ${rows} × ${per} = ${rows * per}. ישבו: ${rows * per} − ${empty} = ${filled}.`,
-      );
-    },
-    () => {
-      const buckets = randInt(3, 6);
-      const per = randInt(4, 8);
-      const extra = randInt(3, 7);
-      const total = buckets * per + extra;
-      return numericQuestion(
-        `🏖️ בחוף בנו מגדלים מחול. ${buckets} ילדים מילאו דלי אחד כל אחד עם ${per} כוסות חול, ועוד ${extra} כוסות נוספו בסוף. כמה כוסות חול בסך הכל?`,
+        `🍎 בפרדס ${trees} עצים, מכל עץ קטפו ${apples} תפוחים. כמה תפוחים בסך הכל?`,
         total,
+        20,
+        `${trees} × ${apples} = ${total}.`,
+      );
+    },
+    () => {
+      const total = pick([60, 72, 84, 96, 120]);
+      const days = pick([4, 6, 8, 12]);
+      const per = total / days;
+      const name = pick(NAMES);
+      return numericQuestion(
+        `📚 ${name} קראה ${total} עמודים ב-${days} ימים שווים. כמה עמודים ביום?`,
+        per,
         8,
-        `${buckets} × ${per} + ${extra} = ${buckets * per} + ${extra} = ${total}.`,
+        `${total} : ${days} = ${per}.`,
       );
     },
   ];
@@ -1245,83 +1674,93 @@ function genWordNormal(): Question {
 function genWordHard(): Question {
   const templates: Array<() => Question> = [
     () => {
-      const groups = pick([4, 6, 8]);
-      const per = randInt(4, 9);
-      const total = groups * per;
-      return numericQuestion(
-        `🎈 בפסטיבל חילקו ${total} בלונים שווה בשווה ל-${groups} ילדים. כמה בלונים קיבל כל ילד?`,
-        per,
-        6,
-        `${total} : ${groups} = ${per}. "שווה בשווה" → חילוק.`,
-      );
-    },
-    () => {
-      const groups = pick([3, 4, 6]);
-      const per = randInt(4, 8);
-      const total = groups * per;
-      return numericQuestion(
-        `🎼 בתזמורת של בית הספר ${total} ילדים, מחולקים ל-${groups} כלים שונים (חליל, כינור, תוף). כמה ילדים בכל כלי?`,
-        per,
-        6,
-        `${total} : ${groups} = ${per}. קבוצות שוות → חילוק.`,
-      );
-    },
-    () => {
-      const name = pick(NAMES);
-      const pages = pick([60, 72, 84, 96]);
-      const perDay = pick([6, 8, 12]);
-      const days = pages / perDay;
-      return numericQuestion(
-        `📚 ${name} קראה ספר של ${pages} עמודים, ${perDay} עמודים כל יום. כמה ימים לקח לה לגמור?`,
-        days,
-        5,
-        `${pages} : ${perDay} = ${days}. כמה קבוצות של ${perDay} יש ב-${pages}? → חילוק.`,
-      );
-    },
-    () => {
-      const kids = randInt(4, 7);
-      const balloons = randInt(4, 8);
-      const total = kids * balloons;
-      return numericQuestion(
-        `🎂 ב-${kids} ימי הולדת חילקו ${total} בלונים שווה בשווה. כמה בלונים היו בכל יום הולדת?`,
-        balloons,
-        6,
-        `${total} : ${kids} = ${balloons}. חילוק שווה בשווה.`,
-      );
-    },
-    () => {
-      const small = randInt(4, 8);
       const factor = pick([3, 4, 5]);
+      const small = randInt(8, 15);
       const big = small * factor;
       const name1 = pick(NAMES);
       const name2 = pick(NAMES.filter((n) => n !== name1));
       return numericQuestion(
-        `✏️ בקלמר של ${name1} יש ${big} עפרונות — פי ${factor} מאשר בקלמר של ${name2}. כמה עפרונות יש ל-${name2}?`,
+        `✏️ ל-${name1} יש ${big} עפרונות — פי ${factor} מאשר ל-${name2}. כמה עפרונות ל-${name2}?`,
         small,
+        6,
+        `"פי ${factor}" אומר ${factor} פעמים יותר. ${big} : ${factor} = ${small}.`,
+      );
+    },
+    () => {
+      // Two-step: cost + change
+      const items = randInt(3, 6);
+      const price = pick([12, 15, 18, 25]);
+      const paid = Math.max(items * price + 20, 100);
+      const change = paid - items * price;
+      return numericQuestion(
+        `🛒 קנית ${items} ספרים ב-${price}₪ כל אחד, ושילמת ${paid}₪. כמה עודף קיבלת?`,
+        change,
+        20,
+        `${items} × ${price} = ${items * price}. ${paid} − ${items * price} = ${change}₪.`,
+      );
+    },
+    () => {
+      // Distance/speed/time
+      const speed = pick([60, 70, 80, 90]);
+      const time = pick([2, 3, 4, 5]);
+      const dist = speed * time;
+      return numericQuestion(
+        `🚗 רכב נוסע במהירות ${speed} קמ״ש במשך ${time} שעות. כמה ק״מ עבר?`,
+        dist,
+        50,
+        `מרחק = מהירות × זמן = ${speed} × ${time} = ${dist} ק״מ.`,
+      );
+    },
+    () => {
+      // Average
+      const a = pick([15, 18, 22]);
+      const b = pick([20, 24, 26]);
+      const c = pick([25, 28, 30]);
+      const avg = Math.round((a + b + c) / 3);
+      return numericQuestion(
+        `📊 בשלושה מבחנים קיבלתי ציונים: ${a}, ${b}, ${c}. מה הציון הממוצע?`,
+        avg,
         5,
-        `"פי ${factor}" אומר שיש ${factor} פעמים יותר. אז ${big} : ${factor} = ${small}.`,
+        `ממוצע = (${a} + ${b} + ${c}) : 3 = ${a + b + c} : 3 = ${avg}.`,
       );
     },
     () => {
-      const trees = randInt(5, 9);
-      const apples = pick([6, 8, 10]);
+      // Percentage
+      const total = pick([60, 80, 100, 120, 200]);
+      const percent = pick([10, 20, 25, 50]);
+      const result = (total * percent) / 100;
+      return numericQuestion(
+        `💯 ${percent}% מתוך ${total} =?`,
+        result,
+        15,
+        `${percent}% של ${total} = ${total} × ${percent} : 100 = ${result}.`,
+      );
+    },
+    () => {
+      // Compound multiplication problem
+      const trees = pick([8, 10, 12]);
+      const apples = pick([15, 18, 20]);
+      const sold = pick([60, 80, 100]);
       const total = trees * apples;
+      const left = total - sold;
       return numericQuestion(
-        `🍎 בפרדס ${trees} עצי תפוחים. מכל עץ קטפו ${apples} תפוחים. כמה תפוחים קטפו בסך הכל?`,
-        total,
-        12,
-        `${trees} × ${apples} = ${total}. "מכל עץ" → כפל.`,
+        `🍎 בפרדס ${trees} עצים, מכל עץ ${apples} תפוחים. מכרו ${sold} תפוחים. כמה נשארו?`,
+        left,
+        30,
+        `סה״כ: ${trees} × ${apples} = ${total}. נשארו: ${total} − ${sold} = ${left}.`,
       );
     },
     () => {
-      const kids = pick([6, 7, 8]);
-      const each = randInt(3, 6);
-      const total = kids * each;
+      // Reverse division
+      const total = pick([84, 96, 108, 120]);
+      const days = pick([6, 8, 12]);
+      const per = total / days;
+      const name = pick(NAMES);
       return numericQuestion(
-        `🎟️ בקולנוע ${kids} חברים קנו כרטיסים, כל אחד שילם ${each}0₪. כמה שילמו סה״כ?`,
-        total * 10,
-        30,
-        `כל אחד שילם ${each}0₪. ${kids} × ${each}0 = ${total * 10}₪.`,
+        `📖 ${name} צריכה לקרוא ${total} עמודים ב-${days} ימים. כמה עמודים תקרא בכל יום?`,
+        per,
+        8,
+        `${total} : ${days} = ${per}.`,
       );
     },
   ];
@@ -1333,6 +1772,10 @@ function genWord(level: Level): Question {
   if (level === "normal") return genWordNormal();
   return genWordHard();
 }
+
+// =====================================================================
+// PUBLIC API
+// =====================================================================
 
 export function generateQuestion(topic: Topic, level: Level): Question {
   switch (topic) {
@@ -1363,7 +1806,7 @@ export function generateQuestions(
   const seen = new Set<string>();
   const out: Question[] = [];
   let guard = 0;
-  while (out.length < count && guard < 400) {
+  while (out.length < count && guard < 600) {
     guard++;
     const q = generateQuestion(topic, level);
     const key = `${q.question}|${q.correctAnswer}`;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type ActivityType = "lesson" | "practice" | "quiz" | "game";
+export type ActivityType = "practice" | "quiz" | "game";
 
 export type Activity = {
   type: ActivityType;
@@ -11,13 +11,14 @@ export type Activity = {
   scorePct?: number;
   stars?: number;
   at: number;
+  startedAt?: number;
+  durationSec?: number;
 };
 
 export type Progress = {
   totalStars: number;
   streak: number;
   lastActiveDate: string;
-  completedLessons: string[];
   daily: { date: string; activities: Activity[] };
   history: Activity[];
   badges: string[];
@@ -27,8 +28,9 @@ export type Progress = {
   >;
 };
 
-const STORAGE_KEY = "lia-lomedet:progress:v1";
-const HISTORY_MAX = 300;
+const STORAGE_KEY = "lia-lomedet:progress:v2";
+const LEGACY_STORAGE_KEY = "lia-lomedet:progress:v1";
+const HISTORY_MAX = 1000;
 export const DAILY_GOAL = 2;
 
 function todayStr(): string {
@@ -51,7 +53,6 @@ const DEFAULT: Progress = {
   totalStars: 0,
   streak: 0,
   lastActiveDate: "",
-  completedLessons: [],
   daily: { date: "", activities: [] },
   history: [],
   badges: [],
@@ -61,18 +62,41 @@ const DEFAULT: Progress = {
 let state: Progress | null = null;
 const listeners = new Set<() => void>();
 
+type LegacyActivity = {
+  type: ActivityType | "lesson";
+  topic: string;
+  level?: string;
+  scorePct?: number;
+  stars?: number;
+  at: number;
+  startedAt?: number;
+  durationSec?: number;
+};
+
 function read(): Progress {
   if (typeof window === "undefined") return DEFAULT;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return { ...DEFAULT, daily: { date: todayStr(), activities: [] } };
-    const parsed = JSON.parse(raw) as Partial<Progress>;
+    const parsed = JSON.parse(raw) as Partial<Progress> & {
+      completedLessons?: unknown;
+      history?: LegacyActivity[];
+      daily?: { date: string; activities: LegacyActivity[] };
+    };
+    const filterActivities = (acts: LegacyActivity[] | undefined): Activity[] =>
+      (acts ?? [])
+        .filter((a) => a.type !== "lesson")
+        .map((a) => a as Activity);
     const merged: Progress = {
       ...DEFAULT,
       ...parsed,
-      daily: parsed.daily ?? { date: todayStr(), activities: [] },
-      history: parsed.history ?? [],
-      completedLessons: parsed.completedLessons ?? [],
+      daily: {
+        date: parsed.daily?.date ?? todayStr(),
+        activities: filterActivities(parsed.daily?.activities),
+      },
+      history: filterActivities(parsed.history),
       badges: parsed.badges ?? [],
       topicStats: parsed.topicStats ?? {},
     };
@@ -109,9 +133,7 @@ export function setProgress(updater: (p: Progress) => Progress) {
 }
 
 export function useProgress(): Progress {
-  const [snap, setSnap] = useState<Progress>(() =>
-    typeof window === "undefined" ? DEFAULT : getProgress(),
-  );
+  const [snap, setSnap] = useState<Progress>(DEFAULT);
   useEffect(() => {
     setSnap(getProgress());
     const l = () => setSnap(getProgress());
@@ -179,20 +201,11 @@ function maybeGrantBadges(p: Progress): Progress {
   return { ...p, badges: Array.from(badges) };
 }
 
-export function recordLessonComplete(lessonId: string, topic: string) {
-  setProgress((p) => {
-    let next = maybeBumpStreak(p);
-    if (!next.completedLessons.includes(lessonId)) {
-      next = {
-        ...next,
-        completedLessons: [...next.completedLessons, lessonId],
-        totalStars: next.totalStars + 3,
-      };
-    }
-    next = addActivity(next, { type: "lesson", topic, at: Date.now() });
-    next = maybeGrantBadges(next);
-    return next;
-  });
+function durationFromStart(startedAt?: number): number | undefined {
+  if (!startedAt) return undefined;
+  const ms = Date.now() - startedAt;
+  if (ms < 0) return undefined;
+  return Math.max(1, Math.round(ms / 1000));
 }
 
 export function recordPracticeComplete(
@@ -200,6 +213,7 @@ export function recordPracticeComplete(
   level: string,
   scorePct: number,
   starsEarned: number,
+  startedAt?: number,
 ) {
   setProgress((p) => {
     let next = maybeBumpStreak(p);
@@ -216,6 +230,8 @@ export function recordPracticeComplete(
       scorePct,
       stars: starsEarned,
       at: Date.now(),
+      startedAt,
+      durationSec: durationFromStart(startedAt),
     });
     next = maybeGrantBadges(next);
     return next;
@@ -227,6 +243,7 @@ export function recordQuizComplete(
   level: string,
   scorePct: number,
   starsEarned: number,
+  startedAt?: number,
 ) {
   setProgress((p) => {
     let next = maybeBumpStreak(p);
@@ -243,13 +260,19 @@ export function recordQuizComplete(
       scorePct,
       stars: starsEarned,
       at: Date.now(),
+      startedAt,
+      durationSec: durationFromStart(startedAt),
     });
     next = maybeGrantBadges(next);
     return next;
   });
 }
 
-export function recordGamePlay(topic: string, score: number) {
+export function recordGamePlay(
+  topic: string,
+  score: number,
+  startedAt?: number,
+) {
   setProgress((p) => {
     let next = maybeBumpStreak(p);
     next = { ...next, totalStars: next.totalStars + score };
@@ -258,6 +281,8 @@ export function recordGamePlay(topic: string, score: number) {
       topic,
       stars: score,
       at: Date.now(),
+      startedAt,
+      durationSec: durationFromStart(startedAt),
     });
     next = maybeGrantBadges(next);
     return next;
@@ -288,5 +313,10 @@ export function isDailyMissionComplete(p: Progress): boolean {
 export function resetProgress() {
   state = { ...DEFAULT, daily: { date: todayStr(), activities: [] } };
   write(state);
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {}
+  }
   notify();
 }

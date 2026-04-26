@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  DAILY_GOAL,
-  dailyCompleted,
-  hasDoneTodayByType,
-  isDailyMissionComplete,
-  useProgress,
-} from "@/lib/progress";
+import { useProgress } from "@/lib/progress";
 
 type SubjectId =
   | "add-sub"
@@ -77,8 +71,6 @@ export default function MathDashboard() {
   const subjectLabel =
     SUBJECTS.find((s) => s.id === subject)?.label ?? "";
   const levelLabel = LEVELS.find((l) => l.id === level)?.label ?? "";
-  const done = dailyCompleted(progress);
-  const missionDone = isDailyMissionComplete(progress);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 pb-20 pt-6 sm:px-8">
@@ -90,23 +82,13 @@ export default function MathDashboard() {
         level={level}
         setLevel={setLevel}
       />
-      <MissionBar
-        done={done}
-        goal={DAILY_GOAL}
-        hasPractice={hasDoneTodayByType(progress, "practice")}
-        hasQuiz={hasDoneTodayByType(progress, "quiz")}
-      />
       <LearnSection
         subject={subject}
         level={level}
         subjectLabel={subjectLabel}
         levelLabel={levelLabel}
       />
-      <GamesSection
-        missionDone={missionDone}
-        done={done}
-        goal={DAILY_GOAL}
-      />
+      <GamesSection />
     </main>
   );
 }
@@ -269,117 +251,6 @@ function Controls({ subject, setSubject, level, setLevel }: ControlsProps) {
   );
 }
 
-function MissionBar({
-  done,
-  goal,
-  hasPractice,
-  hasQuiz,
-}: {
-  done: number;
-  goal: number;
-  hasPractice: boolean;
-  hasQuiz: boolean;
-}) {
-  const pct = Math.min(100, Math.round((done / goal) * 100));
-  const isDone = done >= goal;
-  return (
-    <section className="relative mt-8 overflow-hidden rounded-[28px] p-6 shadow-[0_20px_50px_-20px_rgba(15,27,75,0.55)] sm:p-7"
-      style={{
-        background:
-          "linear-gradient(135deg, #0f1535 0%, #1e1b4b 60%, #312e81 100%)",
-      }}
-    >
-      <div
-        className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
-        style={{ background: "#8b5cf6" }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-24 -right-10 h-56 w-56 rounded-full opacity-25 blur-3xl"
-        style={{ background: "#ec4899" }}
-        aria-hidden
-      />
-
-      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-        <div
-          className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-2xl text-3xl shadow-lg"
-          style={{
-            background: isDone
-              ? "linear-gradient(135deg, #34d399 0%, #10b981 100%)"
-              : "linear-gradient(135deg, #fde047 0%, #f59e0b 100%)",
-            boxShadow: isDone
-              ? "0 14px 32px -12px rgba(16, 185, 129, 0.6)"
-              : "0 14px 32px -12px rgba(245, 158, 11, 0.6)",
-          }}
-          aria-hidden
-        >
-          {isDone ? "✅" : "🎯"}
-        </div>
-
-        <div className="flex-1">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className="text-lg font-bold text-white sm:text-xl">
-              {isDone ? "המשימה היומית הושלמה!" : "המשימה היומית שלך"}
-            </h3>
-            <div className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              <span
-                className="bg-clip-text text-transparent"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(135deg, #fde047 0%, #34d399 100%)",
-                }}
-              >
-                {done}
-              </span>
-              <span className="text-white/60"> / {goal}</span>
-            </div>
-          </div>
-
-          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${pct}%`,
-                background:
-                  "linear-gradient(90deg, #34d399 0%, #10b981 100%)",
-                boxShadow: "0 0 16px 2px rgba(16, 185, 129, 0.7)",
-              }}
-            />
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <MissionPill emoji="✍️" label="תרגול" done={hasPractice} />
-            <MissionPill emoji="🎯" label="מבחן" done={hasQuiz} />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MissionPill({
-  emoji,
-  label,
-  done,
-}: {
-  emoji: string;
-  label: string;
-  done: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold backdrop-blur-md ${
-        done
-          ? "border-emerald-300/50 bg-emerald-400/20 text-emerald-100"
-          : "border-white/20 bg-white/10 text-white/70"
-      }`}
-    >
-      <span>{done ? "✅" : emoji}</span>
-      <span>{label}</span>
-    </span>
-  );
-}
-
 type LearnCard = {
   status: string;
   statusTone: "done" | "new";
@@ -527,16 +398,8 @@ type Game = {
   bg: string;
 };
 
-function GamesSection({
-  missionDone,
-  done,
-  goal,
-}: {
-  missionDone: boolean;
-  done: number;
-  goal: number;
-}) {
-  const games: Array<Game & { href?: string }> = [
+function GamesSection() {
+  const games: Array<Game & { href: string }> = [
     {
       emoji: "🚀",
       title: "מסע הכפל",
@@ -563,8 +426,6 @@ function GamesSection({
     },
   ];
 
-  const remaining = Math.max(0, goal - done);
-
   return (
     <section className="mt-10">
       <div className="flex items-baseline justify-between">
@@ -572,80 +433,33 @@ function GamesSection({
           עולמות המשחק
         </h3>
         <span className="text-sm font-semibold text-ink-soft">
-          {missionDone ? "פותחת — שחקי חופשי!" : "פרס אחרי המשימה"}
+          שחקי חופשי 🎮
         </span>
       </div>
 
       <div className="relative mt-5 overflow-hidden rounded-[28px] border border-line bg-white p-5 shadow-[0_16px_40px_-20px_rgba(15,21,53,0.18)] sm:p-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {games.map((g) => {
-            const unlocked = missionDone && !!g.href;
-            const content = (
+          {games.map((g) => (
+            <Link
+              key={g.title}
+              href={g.href}
+              className="block"
+            >
               <div
-                className={`flex aspect-[4/5] flex-col items-center justify-center gap-3 rounded-[20px] p-4 text-center transition ${
-                  unlocked
-                    ? "hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(15,21,53,0.3)]"
-                    : ""
-                }`}
+                className="flex aspect-[4/5] flex-col items-center justify-center gap-3 rounded-[20px] p-4 text-center transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(15,21,53,0.3)]"
                 style={{ background: g.bg }}
               >
                 <div className="text-5xl">{g.emoji}</div>
                 <div className="text-base font-extrabold text-ink">
                   {g.title}
                 </div>
-                {unlocked && (
-                  <div className="rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold text-ink shadow-sm">
-                    שחקי ←
-                  </div>
-                )}
+                <div className="rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold text-ink shadow-sm">
+                  שחקי ←
+                </div>
               </div>
-            );
-            return unlocked && g.href ? (
-              <Link key={g.title} href={g.href} className="block">
-                {content}
-              </Link>
-            ) : (
-              <div key={g.title}>{content}</div>
-            );
-          })}
+            </Link>
+          ))}
         </div>
-
-        {!missionDone && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[28px] text-center"
-            style={{
-              background: "rgba(255,255,255,0.7)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-            }}
-          >
-            <div
-              className="grid h-16 w-16 place-items-center rounded-2xl text-2xl text-white"
-              style={{
-                background:
-                  "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-                boxShadow: "0 14px 32px -12px rgba(99, 102, 241, 0.6)",
-              }}
-              aria-hidden
-            >
-              🔒
-            </div>
-            <p className="max-w-sm px-4 text-lg font-extrabold text-ink sm:text-xl">
-              סיימי את המשימה היומית כדי לשחק!
-            </p>
-            <p className="text-sm font-medium text-ink-soft">
-              {remaining > 0
-                ? `נשארו לך עוד ${remaining} פעילויות להשלים`
-                : "עוד פעילות אחת!"}
-            </p>
-            <div className="mt-1 flex items-center gap-2 rounded-full border border-line bg-white/90 px-4 py-1.5 text-sm font-bold text-ink shadow-sm">
-              <span>⭐</span>
-              <span>
-                {done} / {goal} הושלמו
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

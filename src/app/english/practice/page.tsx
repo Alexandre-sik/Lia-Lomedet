@@ -66,6 +66,7 @@ function PracticeInner() {
   const [isComplete, setIsComplete] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const recordedRef = useRef(false);
+  const startedAtRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (isComplete) return;
@@ -120,12 +121,13 @@ function PracticeInner() {
       recordedRef.current = true;
       const pct = Math.round((score / questions.length) * 100);
       const stars = pct >= 90 ? 30 : pct >= 70 ? 20 : 10;
-      recordPracticeComplete(`en:${topic}`, level, pct, stars);
+      recordPracticeComplete(`en:${topic}`, level, pct, stars, startedAtRef.current);
     }
   }, [isComplete, score, questions.length, topic, level]);
 
   const restart = useCallback(() => {
     recordedRef.current = false;
+    startedAtRef.current = Date.now();
     setQuestions(generateEnQuestions(topic, level, TOTAL_QUESTIONS));
     setCurrentIndex(0);
     setScore(0);

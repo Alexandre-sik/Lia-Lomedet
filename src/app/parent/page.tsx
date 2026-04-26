@@ -6,30 +6,80 @@ import {
   resetProgress,
   useProgress,
   type Activity,
-  type ActivityType,
   type Progress,
 } from "@/lib/progress";
-import {
-  TOPIC_LABELS as MATH_TOPIC_LABELS,
-  LEVEL_LABELS,
-  isTopic as isMathTopic,
-  isLevel,
-} from "@/lib/math-generator";
-import {
-  EN_TOPIC_LABELS,
-  isEnTopic,
-  isEnLevel,
-} from "@/lib/english-generator";
+
+type SubjectKey = "math" | "english" | "trivia" | "game";
+
+const SUBJECTS: Record<
+  SubjectKey,
+  { label: string; emoji: string; color: string }
+> = {
+  math: { label: "מתמטיקה", emoji: "🧮", color: "#8b5cf6" },
+  english: { label: "אנגלית", emoji: "🇬🇧", color: "#f43f5e" },
+  trivia: { label: "ידע כללי", emoji: "🌍", color: "#14b8a6" },
+  game: { label: "משחקים", emoji: "🎮", color: "#f59e0b" },
+};
+
+function activitySubject(a: Activity): SubjectKey {
+  if (a.type === "game") return "game";
+  if (a.topic.startsWith("en:")) return "english";
+  if (a.topic.startsWith("trivia:")) return "trivia";
+  return "math";
+}
+
+function dateKeyOf(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function todayKey(): string {
+  return dateKeyOf(Date.now());
+}
+
+function formatMin(min: number): string {
+  if (min < 1) return "0 דק׳";
+  if (min < 60) return `${min} דק׳`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h} שעות` : `${h}ש ${m}ד`;
+}
+
+function formatMinShort(min: number): string {
+  if (min < 1) return "—";
+  if (min < 60) return `${min}d`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}h` : `${h}h${m}`;
+}
+
+function dayName(date: Date): string {
+  const days = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+  return days[date.getDay()];
+}
+
+function relativeDate(date: Date): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - target.getTime()) / 86400000);
+  if (diff === 0) return "היום";
+  if (diff === 1) return "אתמול";
+  if (diff < 7) return `לפני ${diff} ימים`;
+  return `${date.getDate()}/${date.getMonth() + 1}`;
+}
 
 export default function ParentPage() {
   const progress = useProgress();
   return (
-    <main className="mx-auto w-full max-w-5xl px-5 pb-20 pt-6 sm:px-8">
+    <main className="mx-auto w-full max-w-4xl px-5 pb-20 pt-6 sm:px-8">
       <TopBar />
-      <Hero />
-      <SummaryGrid progress={progress} />
-      <TopicBreakdown progress={progress} />
-      <ActivityLog progress={progress} />
+      <Hero streak={progress.streak} totalStars={progress.totalStars} />
+      <TodayCard progress={progress} />
+      <WeekCard progress={progress} />
+      <SubjectTotals progress={progress} />
+      <RecentActivities progress={progress} />
       <DangerZone />
     </main>
   );
@@ -54,106 +104,122 @@ function TopBar() {
   );
 }
 
-function Hero() {
+function Hero({
+  streak,
+  totalStars,
+}: {
+  streak: number;
+  totalStars: number;
+}) {
+  const streakLabel =
+    streak === 0 ? "0 ימים" : streak === 1 ? "יום אחד" : `${streak} ימים`;
   return (
-    <section className="mt-6 sm:mt-8">
-      <div
-        className="relative overflow-hidden rounded-[28px] p-6 text-white shadow-[0_20px_50px_-20px_rgba(15,21,53,0.5)] sm:p-7"
-        style={{
-          background:
-            "linear-gradient(135deg, #0f1535 0%, #1e1b4b 60%, #312e81 100%)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
-          style={{ background: "#8b5cf6" }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 -right-10 h-56 w-56 rounded-full opacity-25 blur-3xl"
-          style={{ background: "#ec4899" }}
-          aria-hidden
-        />
-        <div className="relative">
-          <span className="text-xs font-bold uppercase tracking-[0.25em] text-indigo-300">
-            Dashboard
-          </span>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
-            ההתקדמות של{" "}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{
-                backgroundImage:
-                  "linear-gradient(135deg, #fde047 0%, #34d399 100%)",
-              }}
-            >
-              ליה
-            </span>
-          </h2>
-          <p className="mt-1 text-base font-medium text-white/85 sm:text-lg">
-            כל הפעילויות, הכוכבים וההתמדה — במקום אחד
-          </p>
-        </div>
+    <section className="mt-6 rounded-[24px] bg-gradient-to-br from-indigo-900 to-violet-900 p-6 text-white shadow-lg sm:p-7">
+      <h2 className="text-2xl font-extrabold sm:text-3xl">
+        ההתקדמות של ליה
+      </h2>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-bold backdrop-blur">
+          ⭐ {totalStars} כוכבים
+        </span>
+        <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-bold backdrop-blur">
+          🔥 רצף: {streakLabel}
+        </span>
       </div>
     </section>
   );
 }
 
-function SummaryGrid({ progress }: { progress: Progress }) {
-  const streakLabel =
-    progress.streak === 0
-      ? "עוד לא התחילה"
-      : progress.streak === 1
-      ? "יום אחד"
-      : `${progress.streak} ימים`;
+// ---------------------------------------------------------------------
+// TODAY — big number + subject breakdown
+// ---------------------------------------------------------------------
 
-  const allActivities = progress.history.length;
-  const lessonsDone = progress.completedLessons.length;
+type SubjectStats = Record<SubjectKey, number>; // seconds
 
-  const cards: Array<{
-    emoji: string;
-    label: string;
-    value: string;
-    tone: "amber" | "coral" | "violet" | "mint";
-  }> = [
-    {
-      emoji: "⭐",
-      label: "כוכבים שנצברו",
-      value: String(progress.totalStars),
-      tone: "amber",
-    },
-    {
-      emoji: "🔥",
-      label: "רצף ימים",
-      value: streakLabel,
-      tone: "coral",
-    },
-    {
-      emoji: "🎯",
-      label: "סה״כ פעילויות",
-      value: String(allActivities),
-      tone: "violet",
-    },
-    {
-      emoji: "🏆",
-      label: "תגים שהושגו",
-      value: String(progress.badges.length),
-      tone: "mint",
-    },
-  ];
+function emptyStats(): SubjectStats {
+  return { math: 0, english: 0, trivia: 0, game: 0 };
+}
+
+function aggregateBySubject(activities: Activity[]): SubjectStats {
+  const stats = emptyStats();
+  for (const a of activities) {
+    stats[activitySubject(a)] += a.durationSec ?? 0;
+  }
+  return stats;
+}
+
+function TodayCard({ progress }: { progress: Progress }) {
+  const today = todayKey();
+  const todayActivities = useMemo(
+    () => progress.history.filter((a) => dateKeyOf(a.at) === today),
+    [progress.history, today],
+  );
+  const stats = useMemo(
+    () => aggregateBySubject(todayActivities),
+    [todayActivities],
+  );
+  const totalSec = Object.values(stats).reduce((n, v) => n + v, 0);
+  const totalMin = Math.round(totalSec / 60);
 
   return (
-    <section className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      {cards.map((c) => (
-        <SummaryCard key={c.label} {...c} />
-      ))}
-      {lessonsDone > 0 && (
-        <div className="col-span-2 rounded-2xl border border-line bg-white p-5 text-center shadow-sm sm:col-span-4">
-          <div className="text-sm font-bold uppercase tracking-wider text-ink-soft">
-            שיעורים שהושלמו בעבר
+    <section className="mt-8">
+      <h3 className="text-lg font-bold uppercase tracking-wider text-ink-soft">
+        היום
+      </h3>
+
+      {totalMin === 0 ? (
+        <div className="mt-3 rounded-2xl border border-line bg-white p-6 text-center shadow-sm">
+          <div className="text-4xl" aria-hidden>
+            💤
           </div>
-          <div className="mt-1 text-lg font-extrabold text-ink">
-            {lessonsDone} שיעורים
+          <p className="mt-2 text-base font-medium text-ink-soft">
+            ליה עוד לא למדה היום.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 rounded-2xl border border-line bg-white p-6 shadow-sm">
+          <div className="text-center">
+            <div className="text-5xl font-extrabold text-ink sm:text-6xl">
+              {formatMin(totalMin)}
+            </div>
+            <p className="mt-1 text-sm font-semibold text-ink-soft">
+              {todayActivities.length} פעילויות
+            </p>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(["math", "english", "trivia", "game"] as SubjectKey[]).map(
+              (s) => {
+                const min = Math.round(stats[s] / 60);
+                const sub = SUBJECTS[s];
+                return (
+                  <div
+                    key={s}
+                    className="rounded-xl border border-line bg-bg-2 p-3 text-center"
+                    style={
+                      min > 0
+                        ? {
+                            borderColor: sub.color,
+                            background: `${sub.color}14`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="text-2xl">{sub.emoji}</div>
+                    <div className="mt-1 text-xs font-bold text-ink-soft">
+                      {sub.label}
+                    </div>
+                    <div
+                      className="mt-1 text-lg font-extrabold tabular-nums"
+                      style={{ color: min > 0 ? sub.color : "#94a3b8" }}
+                      dir="ltr"
+                    >
+                      {min > 0 ? formatMinShort(min) : "—"}
+                    </div>
+                  </div>
+                );
+              },
+            )}
           </div>
         </div>
       )}
@@ -161,294 +227,258 @@ function SummaryGrid({ progress }: { progress: Progress }) {
   );
 }
 
-function SummaryCard({
-  emoji,
-  label,
-  value,
-  tone,
-}: {
-  emoji: string;
-  label: string;
-  value: string;
-  tone: "amber" | "coral" | "violet" | "mint";
-}) {
-  const toneClasses: Record<string, string> = {
-    amber: "border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-100 text-amber-800",
-    coral: "border-rose-200 bg-gradient-to-br from-rose-50 to-orange-100 text-rose-800",
-    violet: "border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-100 text-indigo-800",
-    mint: "border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 text-emerald-800",
-  };
+// ---------------------------------------------------------------------
+// WEEK — last 7 days, simple bars
+// ---------------------------------------------------------------------
+
+function WeekCard({ progress }: { progress: Progress }) {
+  const days = useMemo(() => {
+    const arr: Array<{
+      key: string;
+      date: Date;
+      label: string;
+      relLabel: string;
+      stats: SubjectStats;
+      totalMin: number;
+    }> = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      const key = dateKeyOf(d.getTime());
+      const acts = progress.history.filter((a) => dateKeyOf(a.at) === key);
+      const stats = aggregateBySubject(acts);
+      const totalSec = Object.values(stats).reduce((n, v) => n + v, 0);
+      arr.push({
+        key,
+        date: d,
+        label: dayName(d),
+        relLabel: relativeDate(d),
+        stats,
+        totalMin: Math.round(totalSec / 60),
+      });
+    }
+    return arr;
+  }, [progress.history]);
+
+  const weekTotalMin = days.reduce((n, d) => n + d.totalMin, 0);
+  const maxDayMin = Math.max(1, ...days.map((d) => d.totalMin));
+
   return (
-    <div className={`rounded-2xl border p-5 shadow-[0_12px_32px_-20px_rgba(15,21,53,0.25)] ${toneClasses[tone]}`}>
-      <div className="text-3xl" aria-hidden>
-        {emoji}
+    <section className="mt-8">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-lg font-bold uppercase tracking-wider text-ink-soft">
+          השבוע (7 ימים אחרונים)
+        </h3>
+        <span className="text-sm font-extrabold text-ink" dir="ltr">
+          {formatMin(weekTotalMin)}
+        </span>
       </div>
-      <div className="mt-2 text-xs font-bold uppercase tracking-wider opacity-80">
-        {label}
+
+      <div className="mt-3 rounded-2xl border border-line bg-white p-5 shadow-sm">
+        <div className="flex h-40 items-end gap-2">
+          {days.map((d) => {
+            const heightPct = (d.totalMin / maxDayMin) * 100;
+            const isToday = d.key === todayKey();
+            return (
+              <div
+                key={d.key}
+                className="flex flex-1 flex-col items-center gap-2"
+                title={`${d.relLabel} — ${formatMin(d.totalMin)}`}
+              >
+                <div className="text-[11px] font-bold tabular-nums text-ink-soft" dir="ltr">
+                  {d.totalMin > 0 ? `${d.totalMin}d` : ""}
+                </div>
+                <div
+                  className="relative w-full overflow-hidden rounded-md bg-bg-2"
+                  style={{
+                    height: `${Math.max(heightPct, 4)}%`,
+                    minHeight: 8,
+                  }}
+                >
+                  {(["math", "english", "trivia", "game"] as SubjectKey[]).map(
+                    (s) => {
+                      const min = Math.round(d.stats[s] / 60);
+                      const segPct =
+                        d.totalMin === 0 ? 0 : (min / d.totalMin) * 100;
+                      if (segPct === 0) return null;
+                      return (
+                        <div
+                          key={s}
+                          style={{
+                            height: `${segPct}%`,
+                            background: SUBJECTS[s].color,
+                          }}
+                        />
+                      );
+                    },
+                  )}
+                </div>
+                <div
+                  className={`text-xs font-bold ${
+                    isToday ? "text-ink" : "text-ink-soft"
+                  }`}
+                >
+                  {d.label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-ink-soft">
+          {(["math", "english", "trivia", "game"] as SubjectKey[]).map((s) => (
+            <span key={s} className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-3 w-3 rounded-sm"
+                style={{ background: SUBJECTS[s].color }}
+              />
+              {SUBJECTS[s].label}
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="mt-1 text-xl font-extrabold sm:text-2xl">{value}</div>
-    </div>
+    </section>
   );
 }
 
-function topicLabel(key: string): string {
-  if (key.startsWith("en:")) {
-    const id = key.slice(3);
-    if (isEnTopic(id)) return `🇬🇧 ${EN_TOPIC_LABELS[id]}`;
-    return `🇬🇧 ${id}`;
-  }
-  if (isMathTopic(key)) return `🧮 ${MATH_TOPIC_LABELS[key]}`;
-  return key;
+// ---------------------------------------------------------------------
+// TOTAL TIME PER SUBJECT (over last 30 days)
+// ---------------------------------------------------------------------
+
+function SubjectTotals({ progress }: { progress: Progress }) {
+  const stats = useMemo(() => {
+    const cutoff = Date.now() - 30 * 24 * 3600 * 1000;
+    return aggregateBySubject(
+      progress.history.filter((a) => a.at >= cutoff),
+    );
+  }, [progress.history]);
+
+  const totalSec = Object.values(stats).reduce((n, v) => n + v, 0);
+  if (totalSec === 0) return null;
+
+  const totalMin = Math.round(totalSec / 60);
+
+  return (
+    <section className="mt-8">
+      <h3 className="text-lg font-bold uppercase tracking-wider text-ink-soft">
+        ב-30 הימים האחרונים
+      </h3>
+
+      <div className="mt-3 rounded-2xl border border-line bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3">
+          {(["math", "english", "trivia", "game"] as SubjectKey[])
+            .map((s) => ({ s, min: Math.round(stats[s] / 60) }))
+            .sort((a, b) => b.min - a.min)
+            .map(({ s, min }) => {
+              const sub = SUBJECTS[s];
+              const pct = totalMin > 0 ? Math.round((min / totalMin) * 100) : 0;
+              return (
+                <div key={s} className="flex items-center gap-3">
+                  <span className="text-xl">{sub.emoji}</span>
+                  <span className="w-20 text-sm font-bold text-ink sm:w-24">
+                    {sub.label}
+                  </span>
+                  <div className="relative h-7 flex-1 overflow-hidden rounded-md bg-bg-2">
+                    <div
+                      className="h-full rounded-md transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        background: sub.color,
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="w-20 text-end text-sm font-extrabold tabular-nums text-ink"
+                    dir="ltr"
+                  >
+                    {min > 0 ? formatMin(min) : "—"}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+    </section>
+  );
 }
 
-function levelLabel(level?: string): string {
-  if (!level) return "";
-  if (isLevel(level)) return LEVEL_LABELS[level];
-  if (isEnLevel(level)) return LEVEL_LABELS[level];
-  return level;
-}
+// ---------------------------------------------------------------------
+// RECENT ACTIVITIES — simple list
+// ---------------------------------------------------------------------
 
-function TopicBreakdown({ progress }: { progress: Progress }) {
-  const entries = Object.entries(progress.topicStats);
-  if (entries.length === 0) {
+function RecentActivities({ progress }: { progress: Progress }) {
+  const recent = useMemo(
+    () => [...progress.history].reverse().slice(0, 15),
+    [progress.history],
+  );
+
+  if (recent.length === 0) {
     return (
-      <section className="mt-10">
-        <h3 className="text-2xl font-extrabold tracking-tight text-ink sm:text-[26px]">
-          סטטיסטיקה לפי נושא
+      <section className="mt-8">
+        <h3 className="text-lg font-bold uppercase tracking-wider text-ink-soft">
+          פעילויות אחרונות
         </h3>
-        <div className="mt-4 rounded-2xl border border-line bg-white p-8 text-center text-base font-medium text-ink-soft">
-          עדיין אין נתונים. כשליה תתחיל לתרגל, הסטטיסטיקה תופיע כאן.
+        <div className="mt-3 rounded-2xl border border-line bg-white p-8 text-center text-sm font-medium text-ink-soft">
+          אין פעילות עדיין.
         </div>
       </section>
     );
   }
 
-  const sorted = [...entries].sort(
-    (a, b) =>
-      b[1].practiceCount +
-      b[1].quizCount -
-      (a[1].practiceCount + a[1].quizCount),
-  );
-
   return (
-    <section className="mt-10">
-      <h3 className="text-2xl font-extrabold tracking-tight text-ink sm:text-[26px]">
-        סטטיסטיקה לפי נושא
+    <section className="mt-8">
+      <h3 className="text-lg font-bold uppercase tracking-wider text-ink-soft">
+        פעילויות אחרונות
       </h3>
-      <div className="mt-4 flex flex-col gap-3">
-        {sorted.map(([topic, s]) => (
-          <article
-            key={topic}
-            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-sm"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="text-base font-extrabold text-ink" dir="auto">
-                {topicLabel(topic)}
-              </div>
-              <div className="mt-1 text-sm font-medium text-ink-soft">
-                {s.practiceCount} תרגולים · {s.quizCount} מבחנים
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <BestScoreBadge pct={s.bestScorePct} />
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function BestScoreBadge({ pct }: { pct: number }) {
-  if (pct === 0) {
-    return (
-      <span className="rounded-full border border-line bg-bg-2 px-3 py-1 text-xs font-bold text-ink-soft">
-        אין ציון עדיין
-      </span>
-    );
-  }
-  const tone =
-    pct >= 90
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : pct >= 70
-      ? "border-sky-200 bg-sky-50 text-sky-700"
-      : "border-amber-200 bg-amber-50 text-amber-700";
-  return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${tone}`}>
-      מיטב: {pct}%
-    </span>
-  );
-}
-
-type DayGroup = { date: string; activities: Activity[] };
-
-function groupByDay(activities: Activity[]): DayGroup[] {
-  const map = new Map<string, Activity[]>();
-  for (const a of activities) {
-    const d = new Date(a.at);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const list = map.get(key) ?? [];
-    list.push(a);
-    map.set(key, list);
-  }
-  const groups: DayGroup[] = [];
-  for (const [date, acts] of map) {
-    groups.push({ date, activities: acts.sort((x, y) => y.at - x.at) });
-  }
-  return groups.sort((a, b) => (a.date < b.date ? 1 : -1));
-}
-
-function formatDateHe(key: string): string {
-  const [y, m, d] = key.split("-").map(Number);
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  if (key === todayKey) return "היום";
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
-  if (key === yKey) return "אתמול";
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
-}
-
-function formatTime(ts: number): string {
-  const d = new Date(ts);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-const ACTIVITY_META: Record<
-  ActivityType,
-  { emoji: string; label: string; tone: string }
-> = {
-  lesson: {
-    emoji: "📖",
-    label: "שיעור",
-    tone: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  },
-  practice: {
-    emoji: "✍️",
-    label: "תרגול",
-    tone: "border-sky-200 bg-sky-50 text-sky-700",
-  },
-  quiz: {
-    emoji: "🎯",
-    label: "מבחן",
-    tone: "border-rose-200 bg-rose-50 text-rose-700",
-  },
-  game: {
-    emoji: "🎮",
-    label: "משחק",
-    tone: "border-amber-200 bg-amber-50 text-amber-700",
-  },
-};
-
-function ActivityLog({ progress }: { progress: Progress }) {
-  const [filter, setFilter] = useState<"all" | ActivityType>("all");
-  const groups = useMemo(() => {
-    const filtered =
-      filter === "all"
-        ? progress.history
-        : progress.history.filter((a) => a.type === filter);
-    return groupByDay(filtered);
-  }, [progress.history, filter]);
-
-  const types: Array<"all" | ActivityType> = [
-    "all",
-    "practice",
-    "quiz",
-    "game",
-    "lesson",
-  ];
-
-  return (
-    <section className="mt-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h3 className="text-2xl font-extrabold tracking-tight text-ink sm:text-[26px]">
-          היסטוריית פעילות
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {types.map((t) => {
-            const active = t === filter;
-            const label =
-              t === "all" ? "הכל" : ACTIVITY_META[t].label;
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setFilter(t)}
-                className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
-                  active
-                    ? "border-ink bg-ink text-white"
-                    : "border-line bg-white text-ink-soft hover:text-ink"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {groups.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-line bg-white p-8 text-center text-base font-medium text-ink-soft">
-          אין פעילות להצגה עדיין.
-        </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-6">
-          {groups.map((g) => (
-            <DayGroupView key={g.date} group={g} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function DayGroupView({ group }: { group: DayGroup }) {
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline gap-2">
-        <h4 className="text-base font-extrabold text-ink">
-          {formatDateHe(group.date)}
-        </h4>
-        <span className="text-sm font-semibold text-ink-soft">
-          · {group.activities.length} פעילויות
-        </span>
-      </div>
-      <ul className="flex flex-col gap-2">
-        {group.activities.map((a, i) => (
-          <ActivityItem key={`${a.at}-${i}`} activity={a} />
+      <ul className="mt-3 flex flex-col gap-2">
+        {recent.map((a, i) => (
+          <ActivityRow key={`${a.at}-${i}`} activity={a} />
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 
-function ActivityItem({ activity }: { activity: Activity }) {
-  const meta = ACTIVITY_META[activity.type];
+const TYPE_LABEL: Record<Activity["type"], string> = {
+  practice: "תרגול",
+  quiz: "מבחן",
+  game: "משחק",
+};
+
+function ActivityRow({ activity }: { activity: Activity }) {
+  const subject = activitySubject(activity);
+  const sub = SUBJECTS[subject];
+  const date = new Date(activity.at);
+  const minutes = activity.durationSec
+    ? Math.max(1, Math.round(activity.durationSec / 60))
+    : 0;
+  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
   return (
-    <li className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-[0_6px_20px_-14px_rgba(15,21,53,0.2)]">
+    <li
+      className="flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm"
+      style={{ borderColor: `${sub.color}40` }}
+    >
       <span
-        className={`grid h-10 w-10 place-items-center rounded-xl text-lg ${meta.tone} border`}
-        aria-hidden
+        className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl text-xl"
+        style={{ background: `${sub.color}1a` }}
       >
-        {meta.emoji}
+        {sub.emoji}
       </span>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-2">
           <span className="text-sm font-extrabold text-ink">
-            {meta.label}
+            {sub.label}
           </span>
-          <span className="text-sm font-semibold text-ink-soft" dir="auto">
-            · {topicLabel(activity.topic)}
+          <span className="text-xs font-semibold text-ink-soft">
+            · {TYPE_LABEL[activity.type]}
           </span>
-          {activity.level && (
-            <span className="text-xs font-semibold text-ink-soft">
-              · {levelLabel(activity.level)}
-            </span>
-          )}
         </div>
-        <div className="mt-0.5 flex flex-wrap items-baseline gap-2 text-xs font-semibold text-ink-soft">
-          <span dir="ltr">{formatTime(activity.at)}</span>
+        <div className="mt-0.5 flex flex-wrap items-baseline gap-2 text-xs font-medium text-ink-soft">
+          <span>{relativeDate(date)}</span>
+          <span dir="ltr">· {time}</span>
+          {minutes > 0 && <span>· ⏱️ {minutes} דק׳</span>}
           {activity.scorePct !== undefined && (
             <span>
               · ציון:{" "}
@@ -457,16 +487,15 @@ function ActivityItem({ activity }: { activity: Activity }) {
               </span>
             </span>
           )}
-          {activity.stars !== undefined && activity.stars > 0 && (
-            <span>
-              · ⭐ <span className="font-extrabold text-ink">+{activity.stars}</span>
-            </span>
-          )}
         </div>
       </div>
     </li>
   );
 }
+
+// ---------------------------------------------------------------------
+// DANGER ZONE
+// ---------------------------------------------------------------------
 
 function DangerZone() {
   const [confirming, setConfirming] = useState(false);
@@ -487,7 +516,7 @@ function DangerZone() {
         איפוס התקדמות
       </h3>
       <p className="mt-1 text-sm font-medium text-rose-700">
-        פעולה זו תמחק את כל הנתונים: כוכבים, תגים, רצף, היסטוריה. לא ניתן לבטל.
+        פעולה זו תמחק את כל הנתונים. לא ניתן לבטל.
       </p>
       <button
         type="button"
@@ -498,7 +527,7 @@ function DangerZone() {
             : "border border-rose-300 bg-white text-rose-700 hover:shadow-sm"
         }`}
       >
-        {confirming ? "לחצי שוב לאישור המחיקה" : "אפסי הכל"}
+        {confirming ? "לחצי שוב לאישור" : "אפסי הכל"}
       </button>
     </section>
   );

@@ -64,6 +64,7 @@ function QuizInner() {
   const [isComplete, setIsComplete] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT_SECONDS);
   const recordedRef = useRef(false);
+  const startedAtRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (isComplete) return;
@@ -117,12 +118,13 @@ function QuizInner() {
       recordedRef.current = true;
       const pct = Math.round((score / questions.length) * 100);
       const stars = pct >= 90 ? 40 : pct >= 70 ? 20 : pct >= 50 ? 10 : 0;
-      recordQuizComplete(topic, level, pct, stars);
+      recordQuizComplete(topic, level, pct, stars, startedAtRef.current);
     }
   }, [isComplete, score, questions.length, topic, level]);
 
   const restart = useCallback(() => {
     recordedRef.current = false;
+    startedAtRef.current = Date.now();
     setQuestions(generateQuestions(topic, level, TOTAL_QUESTIONS));
     setCurrentIndex(0);
     setScore(0);

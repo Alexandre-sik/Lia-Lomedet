@@ -13,7 +13,14 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { recordPracticeComplete, useProgress } from "@/lib/progress";
 import { generateCapitalsQuestions } from "@/lib/capitals";
+import {
+  getTriviaQuestions,
+  type BankCategory,
+  type BankLevel,
+} from "@/lib/trivia-bank";
 import type { TriviaQuestion } from "@/lib/trivia-types";
+
+const TOTAL_QUESTIONS = 15;
 
 const CATEGORY_LABELS: Record<string, string> = {
   geography: "גאוגרפיה",
@@ -44,6 +51,15 @@ const LEVELS = ["easy", "normal", "hard"] as const;
 
 type CategoryId = (typeof CATEGORIES)[number];
 type LevelId = (typeof LEVELS)[number];
+
+const BANK_CATEGORIES = new Set<string>([
+  "geography",
+  "history",
+  "science",
+  "arts",
+  "sports",
+  "trivia",
+]);
 
 function isCategory(v: string | null): v is CategoryId {
   return v !== null && (CATEGORIES as readonly string[]).includes(v);
@@ -91,6 +107,7 @@ function PracticeInner() {
   const [isComplete, setIsComplete] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const recordedRef = useRef(false);
+  const startedAtRef = useRef<number>(Date.now());
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -106,42 +123,31 @@ function PracticeInner() {
       setIsComplete(false);
       setSeconds(0);
       recordedRef.current = false;
+      startedAtRef.current = Date.now();
       setLoadState("ready");
     };
 
-    if (category === "capitals") {
-      const qs = generateCapitalsQuestions(level, 10);
-      applyQuestions(qs);
-      return;
-    }
-
-    const controller = new AbortController();
-    setLoadState("loading");
-    fetch("/api/trivia", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category, level }),
-      signal: controller.signal,
-    })
-      .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || data.error) {
-          throw new Error(data.error ?? `HTTP ${r.status}`);
-        }
-        return data.questions as TriviaQuestion[];
-      })
-      .then((qs) => {
-        if (!Array.isArray(qs) || qs.length === 0) {
-          throw new Error("שאלות לא תקינות");
+    try {
+      if (category === "capitals") {
+        const qs = generateCapitalsQuestions(level, TOTAL_QUESTIONS);
+        applyQuestions(qs);
+      } else if (BANK_CATEGORIES.has(category)) {
+        const qs = getTriviaQuestions(
+          category as BankCategory,
+          level as BankLevel,
+          TOTAL_QUESTIONS,
+        );
+        if (qs.length === 0) {
+          throw new Error("שאלות לא נטענו");
         }
         applyQuestions(qs);
-      })
-      .catch((e) => {
-        if (e.name === "AbortError") return;
-        setErrorMsg(String(e?.message ?? e));
-        setLoadState("error");
-      });
-    return () => controller.abort();
+      } else {
+        throw new Error("קטגוריה לא חוקית");
+      }
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : String(e));
+      setLoadState("error");
+    }
   }, [category, level, reloadKey]);
 
   useEffect(() => {
@@ -188,7 +194,13 @@ function PracticeInner() {
       recordedRef.current = true;
       const pct = Math.round((score / questions.length) * 100);
       const stars = pct >= 90 ? 30 : pct >= 70 ? 20 : 10;
-      recordPracticeComplete(`trivia:${category}`, level, pct, stars);
+      recordPracticeComplete(
+        `trivia:${category}`,
+        level,
+        pct,
+        stars,
+        startedAtRef.current,
+      );
     }
   }, [isComplete, score, questions.length, category, level]);
 
@@ -410,7 +422,7 @@ function LoadingState() {
         ))}
       </div>
       <p className="max-w-md text-sm font-medium text-ink-soft">
-        זה יכול לקחת כמה שניות — אנחנו יוצרים 10 שאלות חדשות בדיוק בשבילך.
+        טוענים שאלות חדשות בשבילך...
       </p>
     </section>
   );

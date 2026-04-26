@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  DAILY_GOAL,
-  dailyCompleted,
-  hasDoneTodayByType,
-  useProgress,
-} from "@/lib/progress";
+import { useProgress } from "@/lib/progress";
 
 type SubjectId =
   | "letters"
@@ -76,7 +71,6 @@ export default function EnglishDashboard() {
   const subjectLabel =
     SUBJECTS.find((s) => s.id === subject)?.label ?? "";
   const levelLabel = LEVELS.find((l) => l.id === level)?.label ?? "";
-  const done = dailyCompleted(progress);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 pb-20 pt-6 sm:px-8">
@@ -89,19 +83,12 @@ export default function EnglishDashboard() {
         level={level}
         setLevel={setLevel}
       />
-      <MissionBar
-        done={done}
-        goal={DAILY_GOAL}
-        hasPractice={hasDoneTodayByType(progress, "practice")}
-        hasQuiz={hasDoneTodayByType(progress, "quiz")}
-      />
       <LearnSection
         subject={subject}
         level={level}
         subjectLabel={subjectLabel}
         levelLabel={levelLabel}
       />
-      <GamesSection />
     </main>
   );
 }
@@ -300,118 +287,6 @@ function Controls({ subject, setSubject, level, setLevel }: ControlsProps) {
   );
 }
 
-function MissionBar({
-  done,
-  goal,
-  hasPractice,
-  hasQuiz,
-}: {
-  done: number;
-  goal: number;
-  hasPractice: boolean;
-  hasQuiz: boolean;
-}) {
-  const pct = Math.min(100, Math.round((done / goal) * 100));
-  const isDone = done >= goal;
-  return (
-    <section
-      className="relative mt-8 overflow-hidden rounded-[28px] p-6 shadow-[0_20px_50px_-20px_rgba(127,29,29,0.55)] sm:p-7"
-      style={{
-        background:
-          "linear-gradient(135deg, #0f1535 0%, #4c1d1d 50%, #7f1d1d 100%)",
-      }}
-    >
-      <div
-        className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
-        style={{ background: "#f43f5e" }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-24 -right-10 h-56 w-56 rounded-full opacity-25 blur-3xl"
-        style={{ background: "#f97316" }}
-        aria-hidden
-      />
-
-      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-        <div
-          className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-2xl text-3xl shadow-lg"
-          style={{
-            background: isDone
-              ? "linear-gradient(135deg, #34d399 0%, #10b981 100%)"
-              : "linear-gradient(135deg, #fde047 0%, #f59e0b 100%)",
-            boxShadow: isDone
-              ? "0 14px 32px -12px rgba(16, 185, 129, 0.6)"
-              : "0 14px 32px -12px rgba(245, 158, 11, 0.6)",
-          }}
-          aria-hidden
-        >
-          {isDone ? "✅" : "🎯"}
-        </div>
-
-        <div className="flex-1">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className="text-lg font-bold text-white sm:text-xl">
-              {isDone ? "המשימה היומית הושלמה!" : "המשימה היומית שלך"}
-            </h3>
-            <div className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              <span
-                className="bg-clip-text text-transparent"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(135deg, #fde047 0%, #34d399 100%)",
-                }}
-              >
-                {done}
-              </span>
-              <span className="text-white/60"> / {goal}</span>
-            </div>
-          </div>
-
-          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${pct}%`,
-                background:
-                  "linear-gradient(90deg, #34d399 0%, #10b981 100%)",
-                boxShadow: "0 0 16px 2px rgba(16, 185, 129, 0.7)",
-              }}
-            />
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <MissionPill emoji="✍️" label="Practice" done={hasPractice} />
-            <MissionPill emoji="🎯" label="Quiz" done={hasQuiz} />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MissionPill({
-  emoji,
-  label,
-  done,
-}: {
-  emoji: string;
-  label: string;
-  done: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold backdrop-blur-md ${
-        done
-          ? "border-emerald-300/50 bg-emerald-400/20 text-emerald-100"
-          : "border-white/20 bg-white/10 text-white/70"
-      }`}
-    >
-      <span>{done ? "✅" : emoji}</span>
-      <span>{label}</span>
-    </span>
-  );
-}
-
 type LearnCard = {
   status: string;
   statusTone: "done" | "new";
@@ -554,94 +429,3 @@ function LearnCardView({ card }: { card: LearnCard }) {
   );
 }
 
-type Game = {
-  emoji: string;
-  title: string;
-  bg: string;
-};
-
-function GamesSection() {
-  const games: Game[] = [
-    {
-      emoji: "🦁",
-      title: "Word Safari",
-      bg: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)",
-    },
-    {
-      emoji: "🐝",
-      title: "Spelling Bee",
-      bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-    },
-    {
-      emoji: "🏴‍☠️",
-      title: "האוצר האבוד",
-      bg: "linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)",
-    },
-    {
-      emoji: "🎭",
-      title: "Story Builder",
-      bg: "linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%)",
-    },
-  ];
-
-  return (
-    <section className="mt-10">
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-2xl font-extrabold tracking-tight text-ink sm:text-[26px]">
-          עולמות המשחק
-        </h3>
-        <span className="text-sm font-semibold text-ink-soft">
-          פרס אחרי המשימה
-        </span>
-      </div>
-
-      <div className="relative mt-5 overflow-hidden rounded-[28px] border border-line bg-white p-5 shadow-[0_16px_40px_-20px_rgba(15,21,53,0.18)] sm:p-6">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {games.map((g) => (
-            <div
-              key={g.title}
-              className="flex aspect-[4/5] flex-col items-center justify-center gap-3 rounded-[20px] p-4 text-center"
-              style={{ background: g.bg }}
-            >
-              <div className="text-5xl">{g.emoji}</div>
-              <div className="text-base font-extrabold text-ink">
-                {g.title}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[28px] text-center"
-          style={{
-            background: "rgba(255,255,255,0.7)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-          }}
-        >
-          <div
-            className="grid h-16 w-16 place-items-center rounded-2xl text-2xl text-white"
-            style={{
-              background:
-                "linear-gradient(135deg, #f43f5e 0%, #f97316 100%)",
-              boxShadow: "0 14px 32px -12px rgba(244, 63, 94, 0.6)",
-            }}
-            aria-hidden
-          >
-            🔒
-          </div>
-          <p className="max-w-sm px-4 text-lg font-extrabold text-ink sm:text-xl">
-            סיימי את המשימה היומית כדי לשחק!
-          </p>
-          <p className="text-sm font-medium text-ink-soft">
-            נשארו לך עוד 2 פעילויות להשלים
-          </p>
-          <div className="mt-1 flex items-center gap-2 rounded-full border border-line bg-white/90 px-4 py-1.5 text-sm font-bold text-ink shadow-sm">
-            <span>⭐</span>
-            <span>1 / 3 הושלמו</span>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
