@@ -113,6 +113,7 @@ function SubjectGrid({
   const mathTopics = noPrefix(Object.entries(mathStats)).map(([, s]) => s);
   const enTopics = byPrefix("en:").map(([, s]) => s);
   const triviaTopics = byPrefix("trivia:").map(([, s]) => s);
+  const examTopics = byPrefix("exam:").map(([, s]) => s);
 
   const summaryPills = (
     topics: Array<typeof mathStats[string]>,
@@ -136,7 +137,16 @@ function SubjectGrid({
   };
 
   return (
-    <section className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <section className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <SubjectCard
+        href="/exam"
+        emoji="📘"
+        title="הכנה למבחן"
+        subtitle="כל החומר למבחן הקרוב"
+        gradient="linear-gradient(135deg, #0f1535 0%, #1e1b4b 55%, #312e81 100%)"
+        shadow="0 24px 60px -20px rgba(49, 46, 129, 0.6)"
+        pills={summaryPills(examTopics, "🎯 חדש")}
+      />
       <SubjectCard
         href="/math"
         emoji="🧮"

@@ -21,6 +21,7 @@ export type Visual =
         | "rhombus"
         | "parallelogram"
         | "trapezoid"
+        | "kite"
         | "pentagon"
         | "hexagon";
     }

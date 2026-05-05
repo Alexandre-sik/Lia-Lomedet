@@ -90,6 +90,7 @@ function ShapeSvg({
     | "rhombus"
     | "parallelogram"
     | "trapezoid"
+    | "kite"
     | "pentagon"
     | "hexagon";
   size?: number;
@@ -195,6 +196,23 @@ function ShapeSvg({
         <polygon
           points={`${size * 0.25},${p} ${size * 0.75},${p} ${size - p},${h - p} ${p},${h - p}`}
           fill="#fb923c"
+          stroke={stroke}
+          strokeWidth={sw}
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (shape === "kite") {
+    const cx = size / 2;
+    const topY = p;
+    const waistY = size * 0.38;
+    const bottomY = size - p;
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="דלתון">
+        <polygon
+          points={`${cx},${topY} ${size - p},${waistY} ${cx},${bottomY} ${p},${waistY}`}
+          fill="#22d3ee"
           stroke={stroke}
           strokeWidth={sw}
           strokeLinejoin="round"
